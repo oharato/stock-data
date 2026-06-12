@@ -3,10 +3,11 @@ import { join } from 'path';
 import type { Ticker, PriceRecord, ErrorRecord } from './domain/types.js';
 import { fetchTickerRange } from './repository/yahoo.js';
 import { writeParquet, readParquet, readParquetMaxDate } from './repository/parquet.js';
-import { buildDuckDb } from './repository/duckdb.js';
+import { buildDuckDb, readDbMaxDate } from './repository/duckdb.js';
 import { fetchAndSaveTickers } from './repository/jpx.js';
 import { today, getCurrentYearMonth, monthParquetPath } from './logic/date-utils.js';
-import { calcFetchRange, mergeRecords } from './logic/update-logic.js';
+import { calcFetchRange } from './logic/update-logic.js';
+import { mergeRecords } from './logic/update-logic.js';
 import { createLogger } from './logic/logger.js';
 
 const DELAY_MS = 1000;
@@ -33,12 +34,17 @@ async function main() {
   const tickers: Ticker[] = await fetchAndSaveTickers();
   logger.log(`Loaded ${tickers.length} tickers`);
 
-  // Step 2: 当月Parquetの最終取得日を確認
+  // Step 2: 最終取得日を確認（stock.duckdb > 当月Parquet > null の優先順）
   const { year, month } = getCurrentYearMonth();
   const parquetPath = monthParquetPath(year, month);
   const monthStart = `${year}-${String(month).padStart(2, '0')}-01`;
-  const lastDate = await readParquetMaxDate(parquetPath);
   const todayStr = today();
+
+  // stock.duckdb があれば全月をまたいだ正確な最終日を取得、なければ当月Parquetで代替
+  const dbLastDate = await readDbMaxDate();
+  const parquetLastDate = await readParquetMaxDate(parquetPath);
+  const lastDate = dbLastDate ?? parquetLastDate;
+  logger.log(`Last date: ${lastDate ?? 'none'} (source: ${dbLastDate ? 'stock.duckdb' : parquetLastDate ? 'current month parquet' : 'none'})`);
 
   const range = calcFetchRange(lastDate, todayStr, monthStart);
   if (!range) {

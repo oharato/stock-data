@@ -4,6 +4,24 @@ import { existsSync, writeFileSync, readFileSync, unlinkSync } from 'fs';
 import { resolve, join } from 'path';
 import { tmpdir } from 'os';
 
+/** stock.duckdb の prices テーブルから全データの最終日を取得する */
+export async function readDbMaxDate(dbPath: string = 'stock.duckdb'): Promise<string | null> {
+  const absDb = resolve(dbPath);
+  if (!existsSync(absDb)) return null;
+  const inst = await DuckDBInstance.create(absDb);
+  const conn = await inst.connect();
+  try {
+    const result = await conn.runAndReadAll('SELECT max(date)::VARCHAR AS max_date FROM prices');
+    const rows = result.getRowObjects();
+    return (rows[0] as any)?.max_date ?? null;
+  } catch {
+    return null; // pricesテーブルが存在しない場合など
+  } finally {
+    conn.disconnectSync();
+    inst.closeSync();
+  }
+}
+
 export async function buildDuckDb(
   parquetGlob: string = 'data/prices/*/*.parquet',
   dbPath: string = 'stock.duckdb',

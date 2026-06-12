@@ -1,6 +1,6 @@
 // src/repository/duckdb.test.ts
 import { describe, it, expect, afterAll } from 'vitest';
-import { buildDuckDb } from './duckdb.js';
+import { buildDuckDb, readDbMaxDate } from './duckdb.js';
 import { writeParquet } from './parquet.js';
 import { DuckDBInstance } from '@duckdb/node-api';
 import { join } from 'path';
@@ -64,5 +64,15 @@ describe('buildDuckDb', () => {
 
     expect(Number((priceCount.getRowObjects()[0] as any).cnt)).toBe(2);
     expect(tickersExists).toBe(false);
+  });
+});
+
+describe('readDbMaxDate', () => {
+  it('returns max date from prices table', async () => {
+    expect(await readDbMaxDate(testDbPath)).toBe('2024-01-04');
+  });
+
+  it('returns null for non-existent db', async () => {
+    expect(await readDbMaxDate(join(testBase, 'nonexistent.duckdb'))).toBeNull();
   });
 });
