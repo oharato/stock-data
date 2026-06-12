@@ -13,7 +13,10 @@ vi.mock('yahoo-finance2', () => ({
 
 import { fetchTickerYear, fetchTickerRange } from './yahoo.js';
 
-beforeEach(() => vi.clearAllMocks());
+beforeEach(() => {
+  vi.clearAllMocks();
+  vi.useRealTimers();
+});
 
 describe('fetchTickerYear', () => {
   it('maps historical rows to PriceRecord format', async () => {
@@ -33,9 +36,26 @@ describe('fetchTickerYear', () => {
     expect(await fetchTickerYear('9999.T', 1999)).toEqual([]);
   });
 
-  it('throws descriptive error on failure', async () => {
+  it('throws descriptive error after retries', async () => {
+    vi.useFakeTimers();
     mockHistorical.mockRejectedValue(new Error('Not Found'));
-    await expect(fetchTickerYear('7203.T', 2024)).rejects.toThrow('Failed to fetch 7203.T for 2024');
+    const assertion = expect(fetchTickerYear('7203.T', 2024)).rejects.toThrow('Failed to fetch 7203.T for 2024');
+    await vi.runAllTimersAsync();
+    await assertion;
+  });
+
+  it('succeeds on second attempt after transient failure', async () => {
+    vi.useFakeTimers();
+    mockHistorical
+      .mockRejectedValueOnce(new Error('429'))
+      .mockResolvedValue([
+        { date: new Date('2024-01-04T00:00:00Z'), open: 100, high: 110, low: 95, close: 105, adjClose: 105, volume: 100 },
+      ]);
+    const promise = fetchTickerYear('7203.T', 2024);
+    await vi.runAllTimersAsync();
+    const result = await promise;
+    expect(result).toHaveLength(1);
+    expect(mockHistorical).toHaveBeenCalledTimes(2);
   });
 });
 
@@ -49,9 +69,12 @@ describe('fetchTickerRange', () => {
     expect(result[0].date).toBe('2024-06-10');
   });
 
-  it('throws descriptive error on failure', async () => {
+  it('throws descriptive error after retries', async () => {
+    vi.useFakeTimers();
     mockHistorical.mockRejectedValue(new Error('timeout'));
-    await expect(fetchTickerRange('7203.T', '2024-06-01', '2024-06-12'))
-      .rejects.toThrow('Failed to fetch 7203.T [2024-06-01~2024-06-12]');
+    const assertion = expect(fetchTickerRange('7203.T', '2024-06-01', '2024-06-12')).rejects.toThrow('Failed to fetch 7203.T [2024-06-01~2024-06-12]');
+    await vi.runAllTimersAsync();
+    await assertion;
   });
 });
+

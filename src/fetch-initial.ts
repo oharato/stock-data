@@ -5,7 +5,7 @@ import { fetchTickerYear } from './repository/yahoo.js';
 import { writeParquet } from './repository/parquet.js';
 import { getMonthKey, monthParquetPath } from './logic/date-utils.js';
 
-const CONCURRENCY = 10;
+const CONCURRENCY = 5;
 const START_YEAR = 2000;
 
 async function main() {

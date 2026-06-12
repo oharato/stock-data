@@ -8,7 +8,7 @@ import { fetchAndSaveTickers } from './repository/jpx.js';
 import { today, getCurrentYearMonth, monthParquetPath } from './logic/date-utils.js';
 import { calcFetchRange, mergeRecords } from './logic/update-logic.js';
 
-const CONCURRENCY = 10;
+const CONCURRENCY = 5;
 
 async function main() {
   // Step 1: tickers.jsonを最新のJPXリストで更新（新規上場・上場廃止を反映）
