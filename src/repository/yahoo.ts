@@ -1,9 +1,9 @@
 // src/repository/yahoo.ts
-import yahooFinance from 'yahoo-finance2';
+import YahooFinance from 'yahoo-finance2';
 import { mapRow } from '../logic/price-mapper.js';
 import type { PriceRecord } from '../domain/types.js';
 
-yahooFinance.setGlobalConfig({ validation: { logErrors: false } });
+const yahooFinance = new YahooFinance({ suppressNotices: ['ripHistorical'] });
 
 export async function fetchTickerYear(ticker: string, year: number): Promise<PriceRecord[]> {
   try {
