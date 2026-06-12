@@ -1,5 +1,4 @@
 import { readFileSync, writeFileSync } from 'fs';
-import pLimit from 'p-limit';
 import type { Ticker, PriceRecord, ErrorRecord } from './domain/types.js';
 import { fetchTickerRange } from './repository/yahoo.js';
 import { writeParquet, readParquet, readParquetMaxDate } from './repository/parquet.js';
@@ -8,7 +7,7 @@ import { fetchAndSaveTickers } from './repository/jpx.js';
 import { today, getCurrentYearMonth, monthParquetPath } from './logic/date-utils.js';
 import { calcFetchRange, mergeRecords } from './logic/update-logic.js';
 
-const CONCURRENCY = 5;
+const DELAY_MS = 1000;
 
 async function main() {
   // Step 1: tickers.jsonを最新のJPXリストで更新（新規上場・上場廃止を反映）
@@ -27,34 +26,32 @@ async function main() {
     return;
   }
 
-  console.log(`Fetching ${range.period1} ~ ${range.period2} for ${tickers.length} tickers...`);
+  console.log(`Fetching ${range.period1} ~ ${range.period2} for ${tickers.length} tickers (1 req/sec)...`);
 
-  // Step 3: 差分を取得
+  // Step 3: 差分を取得（逐次）
   const errors: ErrorRecord[] = [];
   const newRecords: PriceRecord[] = [];
-  const limit = pLimit(CONCURRENCY);
   let done = 0;
 
-  await Promise.all(
-    tickers.map(ticker =>
-      limit(async () => {
-        try {
-          const records = await fetchTickerRange(ticker.code, range.period1, range.period2);
-          newRecords.push(...records);
-        } catch (err) {
-          errors.push({
-            ticker: ticker.code,
-            period: `${range.period1}~${range.period2}`,
-            reason: String(err),
-          });
-        }
-        done++;
-        if (done % 500 === 0 || done === tickers.length) {
-          process.stdout.write(`\r  ${done}/${tickers.length}`);
-        }
-      })
-    )
-  );
+  for (const ticker of tickers) {
+    try {
+      const records = await fetchTickerRange(ticker.code, range.period1, range.period2);
+      newRecords.push(...records);
+    } catch (err) {
+      errors.push({
+        ticker: ticker.code,
+        period: `${range.period1}~${range.period2}`,
+        reason: String(err),
+      });
+    }
+    done++;
+    if (done % 100 === 0 || done === tickers.length) {
+      process.stdout.write(`\r  ${done}/${tickers.length}`);
+    }
+    if (done < tickers.length) {
+      await new Promise(res => setTimeout(res, DELAY_MS));
+    }
+  }
   console.log('');
 
   // Step 4: 当月Parquetを既存データとマージして上書き

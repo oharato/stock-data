@@ -1,11 +1,10 @@
 import { readFileSync, writeFileSync, existsSync } from 'fs';
-import pLimit from 'p-limit';
 import type { Ticker, PriceRecord, ErrorRecord } from './domain/types.js';
 import { fetchTickerYear } from './repository/yahoo.js';
 import { writeParquet } from './repository/parquet.js';
 import { getMonthKey, monthParquetPath } from './logic/date-utils.js';
 
-const CONCURRENCY = 5;
+const DELAY_MS = 1000;
 const START_YEAR = 2000;
 
 async function main() {
@@ -17,7 +16,6 @@ async function main() {
   const tickers: Ticker[] = JSON.parse(readFileSync('tickers.json', 'utf-8'));
   const errors: ErrorRecord[] = [];
   const currentYear = new Date().getFullYear();
-  const limit = pLimit(CONCURRENCY);
 
   for (let year = START_YEAR; year <= currentYear; year++) {
     if (year < currentYear) {
@@ -29,35 +27,34 @@ async function main() {
       }
     }
 
-    console.log(`\n[${year}] Fetching ${tickers.length} tickers (concurrency=${CONCURRENCY})...`);
+    console.log(`\n[${year}] Fetching ${tickers.length} tickers (1 req/sec)...`);
 
     const monthData = new Map<string, PriceRecord[]>();
     let done = 0;
 
-    await Promise.all(
-      tickers.map(ticker =>
-        limit(async () => {
-          try {
-            const records = await fetchTickerYear(ticker.code, year);
-            for (const record of records) {
-              const key = getMonthKey(record.date);
-              const arr = monthData.get(key);
-              if (arr) {
-                arr.push(record);
-              } else {
-                monthData.set(key, [record]);
-              }
-            }
-          } catch (err) {
-            errors.push({ ticker: ticker.code, period: String(year), reason: String(err) });
+    for (const ticker of tickers) {
+      try {
+        const records = await fetchTickerYear(ticker.code, year);
+        for (const record of records) {
+          const key = getMonthKey(record.date);
+          const arr = monthData.get(key);
+          if (arr) {
+            arr.push(record);
+          } else {
+            monthData.set(key, [record]);
           }
-          done++;
-          if (done % 500 === 0 || done === tickers.length) {
-            process.stdout.write(`\r  ${done}/${tickers.length}`);
-          }
-        })
-      )
-    );
+        }
+      } catch (err) {
+        errors.push({ ticker: ticker.code, period: String(year), reason: String(err) });
+      }
+      done++;
+      if (done % 100 === 0 || done === tickers.length) {
+        process.stdout.write(`\r  ${done}/${tickers.length}`);
+      }
+      if (done < tickers.length) {
+        await new Promise(res => setTimeout(res, DELAY_MS));
+      }
+    }
 
     console.log('');
 
