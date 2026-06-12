@@ -5,6 +5,13 @@ import { join, dirname, resolve } from 'path';
 import { tmpdir } from 'os';
 import type { PriceRecord } from '../domain/types.js';
 
+function csvEscape(value: string): string {
+  if (value.includes(',') || value.includes('"') || value.includes('\n')) {
+    return `"${value.replace(/"/g, '""')}"`;
+  }
+  return value;
+}
+
 export async function writeParquet(outputPath: string, records: PriceRecord[]): Promise<void> {
   if (records.length === 0) return;
 
@@ -14,7 +21,7 @@ export async function writeParquet(outputPath: string, records: PriceRecord[]): 
   const tempCsv = join(tmpdir(), `stock-${process.pid}-${Date.now()}.csv`);
   const header = 'date,ticker,open,high,low,close,adj_close,volume';
   const lines = records.map(
-    r => `${r.date},${r.ticker},${r.open},${r.high},${r.low},${r.close},${r.adj_close},${r.volume}`
+    r => `${r.date},${csvEscape(r.ticker)},${r.open},${r.high},${r.low},${r.close},${r.adj_close},${r.volume}`
   );
   writeFileSync(tempCsv, `${header}\n${lines.join('\n')}`);
 

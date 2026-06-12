@@ -41,8 +41,12 @@ async function main() {
             const records = await fetchTickerYear(ticker.code, year);
             for (const record of records) {
               const key = getMonthKey(record.date);
-              if (!monthData.has(key)) monthData.set(key, []);
-              monthData.get(key)!.push(record);
+              const arr = monthData.get(key);
+              if (arr) {
+                arr.push(record);
+              } else {
+                monthData.set(key, [record]);
+              }
             }
           } catch (err) {
             errors.push({ ticker: ticker.code, period: String(year), reason: String(err) });
