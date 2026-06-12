@@ -67,7 +67,9 @@ export async function readParquet(parquetPath: string): Promise<PriceRecord[]> {
   const inst = await DuckDBInstance.create(':memory:');
   const conn = await inst.connect();
   try {
-    const result = await conn.runAndReadAll(`SELECT * FROM read_parquet('${absPath}')`);
+    const result = await conn.runAndReadAll(
+      `SELECT date::VARCHAR AS date, ticker, open, high, low, close, adj_close, volume FROM read_parquet('${absPath}')`
+    );
     return result.getRowObjects() as unknown as PriceRecord[];
   } finally {
     conn.disconnectSync();

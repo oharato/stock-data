@@ -34,6 +34,7 @@ describe('readParquet', () => {
     await writeParquet(testPath, records);
     const result = await readParquet(testPath);
     expect(result).toHaveLength(2);
+    expect(result[0].date).toBe('2024-01-04'); // must be string, not DuckDB Date object
     expect(result[0].ticker).toBe('7203.T');
     expect(Number(result[1].volume)).toBe(900000);
   });
