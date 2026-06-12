@@ -13,7 +13,7 @@
     "@duckdb/node-api": "^1.5.3-r.3",
     "p-limit": "^6.2.0",
     "xlsx": "^0.18.5",
-    "yahoo-finance2": "^2.13.3"
+    "yahoo-finance2": "2.13.3"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
