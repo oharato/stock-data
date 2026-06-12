@@ -4,3 +4,4 @@ stock.duckdb
 errors.json
 tickers.json
 *.duckdb
+logs/
