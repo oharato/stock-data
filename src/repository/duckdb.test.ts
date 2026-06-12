@@ -5,17 +5,18 @@ import { writeParquet } from './parquet.js';
 import { DuckDBInstance } from '@duckdb/node-api';
 import { join } from 'path';
 import { tmpdir } from 'os';
-import { rmSync, existsSync, mkdirSync } from 'fs';
+import { rmSync, existsSync, mkdirSync, writeFileSync } from 'fs';
 
 const testBase = join(tmpdir(), `duckdb-test-${process.pid}-${Date.now()}`);
 const testDbPath = join(testBase, 'test.duckdb');
+const testTickersPath = join(testBase, 'tickers.json');
 
 afterAll(() => {
   if (existsSync(testBase)) rmSync(testBase, { recursive: true });
 });
 
 describe('buildDuckDb', () => {
-  it('creates prices table from monthly parquet files', async () => {
+  it('creates prices and tickers tables', async () => {
     const parquetDir = join(testBase, 'prices', '2024');
     mkdirSync(parquetDir, { recursive: true });
     await writeParquet(join(parquetDir, '01.parquet'), [
@@ -23,20 +24,45 @@ describe('buildDuckDb', () => {
       { date: '2024-01-04', ticker: '1234.T', open: 1000, high: 1010, low: 990, close: 1005, adj_close: 1005, volume: 50000 },
     ]);
 
+    writeFileSync(testTickersPath, JSON.stringify([
+      { code: '7203.T', name: 'トヨタ自動車', market: 'プライム（内国株式）' },
+      { code: '1234.T', name: 'テスト銘柄', market: 'スタンダード（内国株式）' },
+    ]));
+
     const parquetGlob = join(testBase, 'prices', '*', '*.parquet');
-    await buildDuckDb(parquetGlob, testDbPath);
+    await buildDuckDb(parquetGlob, testDbPath, testTickersPath);
 
     const inst = await DuckDBInstance.create(testDbPath);
     const conn = await inst.connect();
-    const countResult = await conn.runAndReadAll('SELECT COUNT(*) AS cnt FROM prices');
-    const tickerResult = await conn.runAndReadAll('SELECT DISTINCT ticker FROM prices ORDER BY ticker');
+    const priceCount = await conn.runAndReadAll('SELECT COUNT(*) AS cnt FROM prices');
+    const tickerCount = await conn.runAndReadAll('SELECT COUNT(*) AS cnt FROM tickers');
+    const tickerRow = await conn.runAndReadAll("SELECT name FROM tickers WHERE code = '7203.T'");
     conn.disconnectSync();
     inst.closeSync();
 
-    const countRows = countResult.getRowObjects();
-    const tickerRows = tickerResult.getRowObjects();
+    expect(Number((priceCount.getRowObjects()[0] as any).cnt)).toBe(2);
+    expect(Number((tickerCount.getRowObjects()[0] as any).cnt)).toBe(2);
+    expect((tickerRow.getRowObjects()[0] as any).name).toBe('トヨタ自動車');
+  });
 
-    expect(Number((countRows[0] as any).cnt)).toBe(2);
-    expect(tickerRows.map((r: any) => r.ticker)).toEqual(['1234.T', '7203.T']);
+  it('creates only prices table when tickers.json is absent', async () => {
+    const db2Path = join(testBase, 'test2.duckdb');
+    const parquetGlob = join(testBase, 'prices', '*', '*.parquet');
+    await buildDuckDb(parquetGlob, db2Path, join(testBase, 'nonexistent.json'));
+
+    const inst = await DuckDBInstance.create(db2Path);
+    const conn = await inst.connect();
+    const priceCount = await conn.runAndReadAll('SELECT COUNT(*) AS cnt FROM prices');
+    // tickers テーブルが存在しないことを確認
+    let tickersExists = false;
+    try {
+      await conn.runAndReadAll('SELECT 1 FROM tickers LIMIT 1');
+      tickersExists = true;
+    } catch { /* expected */ }
+    conn.disconnectSync();
+    inst.closeSync();
+
+    expect(Number((priceCount.getRowObjects()[0] as any).cnt)).toBe(2);
+    expect(tickersExists).toBe(false);
   });
 });
