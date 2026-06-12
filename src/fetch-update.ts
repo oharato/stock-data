@@ -6,12 +6,18 @@ import { buildDuckDb } from './repository/duckdb.js';
 import { fetchAndSaveTickers } from './repository/jpx.js';
 import { today, getCurrentYearMonth, monthParquetPath } from './logic/date-utils.js';
 import { calcFetchRange, mergeRecords } from './logic/update-logic.js';
+import { createLogger } from './logic/logger.js';
 
 const DELAY_MS = 1000;
 
 async function main() {
+  const logger = createLogger('fetch-update');
+  logger.log(`Starting fetch-update (log: ${logger.logFile})`);
+
   // Step 1: tickers.jsonを最新のJPXリストで更新（新規上場・上場廃止を反映）
+  logger.log('Step 1: Updating tickers.json from JPX...');
   const tickers: Ticker[] = await fetchAndSaveTickers();
+  logger.log(`Loaded ${tickers.length} tickers`);
 
   // Step 2: 当月Parquetの最終取得日を確認
   const { year, month } = getCurrentYearMonth();
@@ -22,11 +28,11 @@ async function main() {
 
   const range = calcFetchRange(lastDate, todayStr, monthStart);
   if (!range) {
-    console.log(`Already up to date (last date: ${lastDate ?? 'none'}).`);
+    logger.log(`Already up to date (last date: ${lastDate ?? 'none'}).`);
     return;
   }
 
-  console.log(`Fetching ${range.period1} ~ ${range.period2} for ${tickers.length} tickers (1 req/sec)...`);
+  logger.log(`Step 2: Fetching ${range.period1} ~ ${range.period2} for ${tickers.length} tickers (1 req/sec)...`);
 
   // Step 3: 差分を取得（逐次）
   const errors: ErrorRecord[] = [];
@@ -43,31 +49,36 @@ async function main() {
         period: `${range.period1}~${range.period2}`,
         reason: String(err),
       });
+      logger.error(`Failed: ${ticker.code} — ${err}`);
     }
     done++;
-    if (done % 100 === 0 || done === tickers.length) {
-      process.stdout.write(`\r  ${done}/${tickers.length}`);
+    logger.progress(`${done}/${tickers.length}`);
+    if (done % 100 === 0) {
+      logger.log(`Progress: ${done}/${tickers.length} fetched, ${newRecords.length} records, ${errors.length} errors`);
     }
     if (done < tickers.length) {
       await new Promise(res => setTimeout(res, DELAY_MS));
     }
   }
-  console.log('');
+  logger.done();
+  logger.log(`Fetch complete: ${newRecords.length} new records, ${errors.length} errors`);
 
   // Step 4: 当月Parquetを既存データとマージして上書き
+  logger.log(`Step 3: Merging into ${parquetPath}...`);
   const existing = await readParquet(parquetPath);
   const merged = mergeRecords(existing, newRecords);
   await writeParquet(parquetPath, merged);
-  console.log(`Updated ${parquetPath} (${merged.length} rows total)`);
+  logger.log(`Updated ${parquetPath}: ${existing.length} → ${merged.length} rows`);
 
   if (errors.length > 0) {
     writeFileSync('errors.json', JSON.stringify(errors, null, 2));
-    console.log(`${errors.length} errors saved to errors.json`);
+    logger.error(`${errors.length} errors saved to errors.json`);
   }
 
   // Step 5: DuckDB再構築
+  logger.log('Step 4: Rebuilding stock.duckdb...');
   await buildDuckDb();
-  console.log('Done!');
+  logger.log('Done!');
 }
 
 main().catch(console.error);
