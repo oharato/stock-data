@@ -1,4 +1,5 @@
-import { readFileSync, writeFileSync } from 'fs';
+import { readFileSync, writeFileSync, existsSync, mkdirSync, readdirSync, rmSync } from 'fs';
+import { join } from 'path';
 import type { Ticker, PriceRecord, ErrorRecord } from './domain/types.js';
 import { fetchTickerRange } from './repository/yahoo.js';
 import { writeParquet, readParquet, readParquetMaxDate } from './repository/parquet.js';
@@ -9,6 +10,19 @@ import { calcFetchRange, mergeRecords } from './logic/update-logic.js';
 import { createLogger } from './logic/logger.js';
 
 const DELAY_MS = 1000;
+const UPDATE_CACHE_BASE = 'data/update-cache';
+
+/** 当日以外のキャッシュディレクトリを削除する */
+function pruneOldCaches(currentKey: string, logger: ReturnType<typeof createLogger>): void {
+  if (!existsSync(UPDATE_CACHE_BASE)) return;
+  for (const entry of readdirSync(UPDATE_CACHE_BASE)) {
+    if (entry !== currentKey) {
+      const stale = join(UPDATE_CACHE_BASE, entry);
+      rmSync(stale, { recursive: true, force: true });
+      logger.log(`Removed stale cache: ${stale}`);
+    }
+  }
+}
 
 async function main() {
   const logger = createLogger('fetch-update');
@@ -32,16 +46,41 @@ async function main() {
     return;
   }
 
-  logger.log(`Step 2: Fetching ${range.period1} ~ ${range.period2} for ${tickers.length} tickers (1 req/sec)...`);
+  // キャッシュキー = "period1_period2"（当日ユニーク）
+  const cacheKey = `${range.period1}_${range.period2}`;
+  const cacheDir = join(UPDATE_CACHE_BASE, cacheKey);
 
-  // Step 3: 差分を取得（逐次）
+  // 前日以前のキャッシュを削除
+  pruneOldCaches(cacheKey, logger);
+  mkdirSync(cacheDir, { recursive: true });
+
+  const cachedFiles = existsSync(cacheDir)
+    ? readdirSync(cacheDir).filter(f => f.endsWith('.json')).length
+    : 0;
+  logger.log(`Step 2: Fetching ${range.period1} ~ ${range.period2} for ${tickers.length} tickers (cache: ${cacheDir}, ${cachedFiles} cached)...`);
+
+  // Step 3: 差分を取得（逐次、キャッシュあり）
   const errors: ErrorRecord[] = [];
   const newRecords: PriceRecord[] = [];
   let done = 0;
+  let cached = 0;
 
   for (const ticker of tickers) {
+    const cachePath = join(cacheDir, `${ticker.code}.json`);
+
+    if (existsSync(cachePath)) {
+      // キャッシュから読み込み（再実行時のスキップ）
+      const records: PriceRecord[] = JSON.parse(readFileSync(cachePath, 'utf-8'));
+      newRecords.push(...records);
+      done++;
+      cached++;
+      logger.progress(`${done}/${tickers.length} (${cached} cached)`);
+      continue;
+    }
+
     try {
       const records = await fetchTickerRange(ticker.code, range.period1, range.period2);
+      writeFileSync(cachePath, JSON.stringify(records));
       newRecords.push(...records);
     } catch (err) {
       errors.push({
@@ -61,7 +100,7 @@ async function main() {
     }
   }
   logger.done();
-  logger.log(`Fetch complete: ${newRecords.length} new records, ${errors.length} errors`);
+  logger.log(`Fetch complete: ${newRecords.length} new records, ${cached} cached, ${errors.length} errors`);
 
   // Step 4: 当月Parquetを既存データとマージして上書き
   logger.log(`Step 3: Merging into ${parquetPath}...`);
