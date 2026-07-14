@@ -1,7 +1,6 @@
 // src/repository/duckdb.test.ts
 import { describe, it, expect, afterAll } from 'vitest';
 import { buildDuckDb, readDbMaxDate } from './duckdb.js';
-import { writeParquet } from './parquet.js';
 import { DuckDBInstance } from '@duckdb/node-api';
 import { join } from 'path';
 import { tmpdir } from 'os';
@@ -17,20 +16,25 @@ afterAll(() => {
 
 describe('buildDuckDb', () => {
   it('creates prices and tickers tables', async () => {
-    const parquetDir = join(testBase, 'prices', '2024');
-    mkdirSync(parquetDir, { recursive: true });
-    await writeParquet(join(parquetDir, '01.parquet'), [
-      { date: '2024-01-04', ticker: '7203.T', open: 2500, high: 2550, low: 2490, close: 2530, adj_close: 2530, volume: 1000000 },
-      { date: '2024-01-04', ticker: '1234.T', open: 1000, high: 1010, low: 990, close: 1005, adj_close: 1005, volume: 50000 },
-    ]);
+    const rawDir = join(testBase, 'raw');
+    mkdirSync(rawDir, { recursive: true });
+
+    // 7203.T の仮データをJSONで作成
+    writeFileSync(join(rawDir, '7203.T.json'), JSON.stringify([
+      { date: '2024-01-04', ticker: '7203.T', open: 2500, high: 2550, low: 2490, close: 2530, adj_close: 2530, volume: 1000000 }
+    ]));
+    // 1234.T の仮データをJSONで作成
+    writeFileSync(join(rawDir, '1234.T.json'), JSON.stringify([
+      { date: '2024-01-04', ticker: '1234.T', open: 1000, high: 1010, low: 990, close: 1005, adj_close: 1005, volume: 50000 }
+    ]));
 
     writeFileSync(testTickersPath, JSON.stringify([
       { code: '7203.T', name: 'トヨタ自動車', market: 'プライム（内国株式）' },
       { code: '1234.T', name: 'テスト銘柄', market: 'スタンダード（内国株式）' },
     ]));
 
-    const parquetGlob = join(testBase, 'prices', '*', '*.parquet');
-    await buildDuckDb(parquetGlob, testDbPath, testTickersPath);
+    const rawGlob = join(testBase, 'raw', '*.json');
+    await buildDuckDb(rawGlob, testDbPath, testTickersPath);
 
     const inst = await DuckDBInstance.create(testDbPath);
     const conn = await inst.connect();
@@ -47,8 +51,8 @@ describe('buildDuckDb', () => {
 
   it('creates only prices table when tickers.json is absent', async () => {
     const db2Path = join(testBase, 'test2.duckdb');
-    const parquetGlob = join(testBase, 'prices', '*', '*.parquet');
-    await buildDuckDb(parquetGlob, db2Path, join(testBase, 'nonexistent.json'));
+    const rawGlob = join(testBase, 'raw', '*.json');
+    await buildDuckDb(rawGlob, db2Path, join(testBase, 'nonexistent.json'));
 
     const inst = await DuckDBInstance.create(db2Path);
     const conn = await inst.connect();

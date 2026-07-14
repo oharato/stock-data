@@ -8,7 +8,7 @@ export function mapRow(row: any, ticker: string): PriceRecord {
     high: row.high ?? 0,
     low: row.low ?? 0,
     close: row.close ?? 0,
-    adj_close: row.adjClose ?? row.close ?? 0,
+    adj_close: row.adjclose ?? row.adjClose ?? row.close ?? 0,
     volume: row.volume ?? 0,
   };
 }

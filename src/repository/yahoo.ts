@@ -23,15 +23,16 @@ async function withRetry<T>(fn: () => Promise<T>, label: string): Promise<T> {
 }
 
 export async function fetchTickerYear(ticker: string, year: number): Promise<PriceRecord[]> {
-  const rows = await withRetry(
-    () => yahooFinance.historical(ticker, {
+  const result = await withRetry(
+    () => yahooFinance.chart(ticker, {
       period1: `${year}-01-01`,
       period2: `${year}-12-31`,
       interval: '1d',
     }),
     `Failed to fetch ${ticker} for ${year}`
   );
-  return rows.map(row => mapRow(row, ticker));
+  const quotes = result.quotes || [];
+  return quotes.map(row => mapRow(row, ticker));
 }
 
 export async function fetchTickerRange(
@@ -39,9 +40,10 @@ export async function fetchTickerRange(
   period1: string,
   period2: string
 ): Promise<PriceRecord[]> {
-  const rows = await withRetry(
-    () => yahooFinance.historical(ticker, { period1, period2, interval: '1d' }),
+  const result = await withRetry(
+    () => yahooFinance.chart(ticker, { period1, period2, interval: '1d' }),
     `Failed to fetch ${ticker} [${period1}~${period2}]`
   );
-  return rows.map(row => mapRow(row, ticker));
+  const quotes = result.quotes || [];
+  return quotes.map(row => mapRow(row, ticker));
 }

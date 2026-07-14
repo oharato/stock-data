@@ -4,8 +4,7 @@
   "type": "module",
   "scripts": {
     "fetch-tickers": "tsx src/fetch-tickers.ts",
-    "fetch-initial": "tsx src/fetch-initial.ts",
-    "fetch-update": "tsx src/fetch-update.ts",
+    "fetch": "tsx src/fetch.ts",
     "build-duckdb": "tsx src/build-duckdb.ts",
     "test": "vitest run"
   },
