@@ -7,6 +7,8 @@ Type=oneshot
 WorkingDirectory=/home/oharato/workspace/stock-data
 Environment="PATH=/home/oharato/.nvm/versions/node/v24.13.0/bin:/usr/local/bin:/usr/bin:/bin"
 ExecStart=/home/oharato/.nvm/versions/node/v24.13.0/bin/npm run all
+StandardOutput=append:/home/oharato/workspace/stock-data/logs/systemd.log
+StandardError=append:/home/oharato/workspace/stock-data/logs/systemd.log
 
 [Install]
 WantedBy=default.target

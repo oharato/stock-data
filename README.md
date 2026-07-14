@@ -156,6 +156,67 @@ async function queryStockData() {
   systemctl --user start stock-data.service
   ```
 * **実行ログの確認 (リアルタイム追跡):**
-  ```bash
-  journalctl --user -u stock-data.service -f
-  ```
+  標準出力および標準エラー出力は、リポジトリ内の `logs/systemd.log` に自動的に保存（追記）されます。
+  * **ログファイルの確認:**
+    ```bash
+    tail -f logs/systemd.log
+    ```
+  * **systemd ログ (journald) での確認:**
+    ```bash
+    journalctl --user -u stock-data.service -f
+    ```
+
+---
+
+## 6. MCP (Model Context Protocol) を用いたデータ分析
+
+AIアシスタント（Cursor、Claude Desktop、Clineなど）から本プロジェクトの DuckDB に直接アクセスして自然言語で分析できるようにするための、MCP設定手順です。Node.js製の `mcp-duckdb-local` を使用します。
+
+### ① ローカル環境での接続設定
+同一PC上のAIクライアントから接続する場合、クライアントのMCP設定ファイル（`mcp.json` や `mcp_config.json`）に以下を追加します。
+
+```json
+{
+  "mcpServers": {
+    "duckdb-local": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "mcp-duckdb-local",
+        "--db-path",
+        "/home/oharato/workspace/stock-data/stock.duckdb"
+      ]
+    }
+  }
+}
+```
+
+### ② 別PC（リモート）から SSH 経由での接続設定
+別のPCからネットワーク経由（SSH経由の標準入出力）で本PCの DuckDB に接続し、安全に分析を実行する場合の設定です。
+
+#### 1. 前提条件
+*   クライアント側（別PC）からサーバー側（本PC）へ、**パスワード入力なし（SSH公開鍵認証）**でSSHログインできる状態にしておいてください。
+
+#### 2. クライアント側（別PC）の設定ファイル (`mcp.json`)
+
+特にサーバー側で **NVM (Node Version Manager)** を使って Node.js を管理している場合、SSH経由の非インタラクティブセッションでは `node`/`npx` へのパスが失われるため、以下のように `PATH` を明示的に export し、絶対パスで指定する必要があります。
+
+```json
+{
+  "mcpServers": {
+    "duckdb-remote-ssh": {
+      "type": "stdio",
+      "command": "ssh",
+      "args": [
+        "oharato@nuc7.local",
+        "export PATH=/home/oharato/.nvm/versions/node/v24.13.0/bin:$PATH && /home/oharato/.nvm/versions/node/v24.13.0/bin/npx -y mcp-duckdb-local --db-path /home/oharato/workspace/stock-data/stock.duckdb --read-write"
+      ]
+    }
+  }
+}
+```
+
+*   **`export PATH=... && <npxの絶対パス> ...`**: NVM環境下で `npx` や `node` のコマンドが見つからない問題（Command not found）を回避するための設定です。
+*   **`--read-write`**: 必要に応じて書き込み権限を有効にするオプションです。
+
+
