@@ -6,6 +6,7 @@
     "fetch-tickers": "tsx src/fetch-tickers.ts",
     "fetch": "tsx src/fetch.ts",
     "build-duckdb": "tsx src/build-duckdb.ts",
+    "all": "npm run fetch-tickers && npm run fetch && npm run build-duckdb",
     "test": "vitest run"
   },
   "dependencies": {

@@ -63,6 +63,12 @@ npm run build-duckdb
 ```
 APIへの問い合わせを行わず、すでに `data/raw/` 以下に保存されている JSON キャッシュのみを用いて、`stock.duckdb` を一瞬で再構築します。DBスキーマを変更した際などに便利です。
 
+### 全プロセスの順次一括実行
+```bash
+npm run all
+```
+`fetch-tickers` (銘柄更新) -> `fetch` (データ取得) -> `build-duckdb` (DB再構築) の3つのコマンドを順番に実行します。前ステップが正常に成功した場合のみ次へ進みます。定期実行の際などに便利です。
+
 ### テストの実行
 ```bash
 npm run test
@@ -109,3 +115,47 @@ async function queryStockData() {
 ```
 
 *※注意: Linux環境下では、バッチ更新によってファイルがリネーム差し替えされた場合、接続中のプロセスは古いDBの実体を参照し続けます。最新のデータを反映させるためには、クエリを実行するたびに新しく接続を確立するか、定期的に再接続を行うように実装してください。*
+
+---
+
+## 5. 定期実行 (systemd)
+
+本システムは、systemd のユーザーサービスおよびタイマー機能（`systemd --user`）を利用して、日次で自動実行することができます。
+
+設定ファイルはリポジトリの [systemd/](file:///home/oharato/workspace/stock-data/systemd) ディレクトリ以下に格納されており、ユーザー設定ディレクトリとシンボリックリンクで紐付けることで動作します。
+
+### セットアップ手順
+
+1. **設定ファイルをユーザーの systemd ディレクトリへシンボリックリンク**
+   ```bash
+   mkdir -p ~/.config/systemd/user/
+   ln -sf $(pwd)/systemd/stock-data.service ~/.config/systemd/user/stock-data.service
+   ln -sf $(pwd)/systemd/stock-data.timer ~/.config/systemd/user/stock-data.timer
+   ```
+
+2. **systemd デーモンの再読み込みとタイマーの有効化・起動**
+   ```bash
+   systemctl --user daemon-reload
+   systemctl --user enable --now stock-data.timer
+   ```
+
+3. **(推奨) ログアウト中も実行を継続させる設定**
+   デフォルトでは、ユーザーがログインしている間のみタイマーが動作します。ログアウト中も常時稼働させるため、ユーザーの「Linger (常駐)」を有効化してください。
+   ```bash
+   loginctl enable-linger $(whoami)
+   ```
+
+### 管理・デバッグコマンド
+
+* **タイマーの稼働状態・次回実行予定の確認:**
+  ```bash
+  systemctl --user status stock-data.timer
+  ```
+* **手動での即時テスト実行:**
+  ```bash
+  systemctl --user start stock-data.service
+  ```
+* **実行ログの確認 (リアルタイム追跡):**
+  ```bash
+  journalctl --user -u stock-data.service -f
+  ```

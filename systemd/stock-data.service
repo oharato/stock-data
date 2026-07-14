@@ -1,0 +1,12 @@
+[Unit]
+Description=Stock Data Fetch and Build Job
+After=network.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=/home/oharato/workspace/stock-data
+Environment="PATH=/home/oharato/.nvm/versions/node/v24.13.0/bin:/usr/local/bin:/usr/bin:/bin"
+ExecStart=/home/oharato/.nvm/versions/node/v24.13.0/bin/npm run all
+
+[Install]
+WantedBy=default.target
