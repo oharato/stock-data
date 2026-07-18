@@ -1,7 +1,8 @@
-import { writeFileSync, mkdirSync, existsSync, copyFileSync, unlinkSync } from 'fs';
+import { promises as fs, mkdirSync, existsSync, copyFileSync, unlinkSync } from 'fs';
 import { join, resolve } from 'path';
 import { DuckDBInstance } from '@duckdb/node-api';
 import pLimit from 'p-limit';
+import sharp from 'sharp';
 import {
   fetchDailyPrices,
   fetchWeeklyPrices,
@@ -11,8 +12,11 @@ import {
 import { generateChartWebp } from './generator.js';
 import { createLogger } from '../shared/logic/logger.js';
 
-// Concurrency limit for generating images in parallel
-const CONCURRENCY_LIMIT = 5;
+// Optimize sharp image generation concurrency to avoid thread contention
+sharp.concurrency(1);
+
+// Concurrency limit for parallel I/O-bound tasks
+const CONCURRENCY_LIMIT = 10;
 
 interface TickerRow {
   code: string;
@@ -36,9 +40,28 @@ async function getTickersFromDb(dbPath: string): Promise<TickerRow[]> {
   }
 }
 
+// Fetch the latest stock price date for all tickers to perform incremental skips
+async function getLatestDatesFromDb(dbPath: string): Promise<Map<string, string>> {
+  const absDb = resolve(dbPath);
+  const inst = await DuckDBInstance.create(absDb, { access_mode: 'READ_ONLY' });
+  const conn = await inst.connect();
+  try {
+    const result = await conn.runAndReadAll('SELECT ticker::VARCHAR as ticker, max(date)::VARCHAR as max_date FROM prices GROUP BY ticker');
+    const rows = result.getRowObjects() as any[];
+    const map = new Map<string, string>();
+    for (const r of rows) {
+      map.set(r.ticker, r.max_date);
+    }
+    return map;
+  } finally {
+    conn.disconnectSync();
+    inst.closeSync();
+  }
+}
+
 async function main() {
   const logger = createLogger('generate-charts-batch');
-  logger.log(`Starting batch chart generation (log: ${logger.logFile})`);
+  logger.log(`Starting optimized batch chart generation (log: ${logger.logFile})`);
 
   // Ensure output directories exist
   const baseDir = './data/charts';
@@ -54,7 +77,7 @@ async function main() {
     }
   }
 
-  // Copy database file to avoid lock conflict with other running processes (MCP server etc.)
+  // Copy database file to avoid lock conflict with Hono server or fetch tasks
   const originalDb = resolve('stock.duckdb');
   const tempDb = resolve('stock.duckdb.tmp-batch');
   
@@ -67,15 +90,18 @@ async function main() {
   copyFileSync(originalDb, tempDb);
 
   try {
-    // Fetch all stock tickers
-    logger.log('Fetching ticker list from DB...');
-    const tickers = await getTickersFromDb(tempDb);
+    // Fetch all stock tickers and their latest data dates
+    logger.log('Fetching ticker list and latest price dates from DB...');
+    const [tickers, latestDatesMap] = await Promise.all([
+      getTickersFromDb(tempDb),
+      getLatestDatesFromDb(tempDb)
+    ]);
     logger.log(`Found ${tickers.length} tickers to process.`);
-
 
     const limit = pLimit(CONCURRENCY_LIMIT);
     let completed = 0;
     let failed = 0;
+    let skipped = 0;
 
     const startTime = Date.now();
 
@@ -83,39 +109,65 @@ async function main() {
       return limit(async () => {
         const { code, name } = t;
         try {
-          // 1. Daily Chart (120 trading days)
-          const dailyData = await fetchDailyPrices(code, 120, tempDb);
+          // Incremental generation skip logic:
+          // Skip if daily, weekly, and monthly charts exist and are newer than the latest DB price date
+          const maxDate = latestDatesMap.get(code);
+          let shouldSkip = false;
+          
+          if (maxDate) {
+            const paths = [
+              join(dirs.daily, `${code}.webp`),
+              join(dirs.weekly, `${code}.webp`),
+              join(dirs.monthly, `${code}.webp`)
+            ];
+            
+            if (paths.every(p => existsSync(p))) {
+              const stats = await Promise.all(paths.map(p => fs.stat(p)));
+              const minMtime = Math.min(...stats.map(s => s.mtimeMs));
+              const maxDateTs = new Date(`${maxDate}T23:59:59Z`).getTime();
+              
+              if (minMtime >= maxDateTs) {
+                shouldSkip = true;
+              }
+            }
+          }
+
+          if (shouldSkip) {
+            skipped++;
+            completed++;
+            return;
+          }
+
+          // Fetch all 3 price datasets in parallel to minimize query latency
+          const [dailyData, weeklyData, monthlyData] = await Promise.all([
+            fetchDailyPrices(code, 120, tempDb),
+            fetchWeeklyPrices(code, 100, tempDb),
+            fetchMonthlyPrices(code, 120, tempDb)
+          ]);
+
+          const writePromises: Promise<void>[] = [];
+
+          // Generate and queue file writes asynchronously
           if (dailyData.length > 0) {
-            const dailyWebp = await generateChartWebp(dailyData, {
-              title: name,
-              ticker: code,
-              type: 'daily',
-            });
-            writeFileSync(join(dirs.daily, `${code}.webp`), dailyWebp);
+            writePromises.push(
+              generateChartWebp(dailyData, { title: name, ticker: code, type: 'daily' })
+                .then(buf => fs.writeFile(join(dirs.daily, `${code}.webp`), buf))
+            );
           }
-
-          // 2. Weekly Chart (100 weeks)
-          const weeklyData = await fetchWeeklyPrices(code, 100, tempDb);
           if (weeklyData.length > 0) {
-            const weeklyWebp = await generateChartWebp(weeklyData, {
-              title: name,
-              ticker: code,
-              type: 'weekly',
-            });
-            writeFileSync(join(dirs.weekly, `${code}.webp`), weeklyWebp);
+            writePromises.push(
+              generateChartWebp(weeklyData, { title: name, ticker: code, type: 'weekly' })
+                .then(buf => fs.writeFile(join(dirs.weekly, `${code}.webp`), buf))
+            );
           }
-
-          // 3. Monthly Chart (120 months)
-          const monthlyData = await fetchMonthlyPrices(code, 120, tempDb);
           if (monthlyData.length > 0) {
-            const monthlyWebp = await generateChartWebp(monthlyData, {
-              title: name,
-              ticker: code,
-              type: 'monthly',
-            });
-            writeFileSync(join(dirs.monthly, `${code}.webp`), monthlyWebp);
+            writePromises.push(
+              generateChartWebp(monthlyData, { title: name, ticker: code, type: 'monthly' })
+                .then(buf => fs.writeFile(join(dirs.monthly, `${code}.webp`), buf))
+            );
           }
 
+          await Promise.all(writePromises);
           completed++;
         } catch (err) {
           failed++;
@@ -125,13 +177,9 @@ async function main() {
           const elapsedMs = Date.now() - startTime;
           const elapsedSec = elapsedMs / 1000;
           
-          // Speed (tickers per second)
           const speed = (totalProcessed / (elapsedSec || 1)).toFixed(1);
-          
-          // Progress percentage
           const pct = ((totalProcessed / tickers.length) * 100).toFixed(1);
           
-          // Estimated Time of Arrival (ETA)
           const remainingTickers = tickers.length - totalProcessed;
           const avgTimePerTicker = elapsedMs / totalProcessed;
           const etaMs = remainingTickers * avgTimePerTicker;
@@ -144,33 +192,31 @@ async function main() {
             etaStr = `${String(etaMin).padStart(2, '0')}:${String(etaSec).padStart(2, '0')}`;
           }
 
-          // Print real-time progress on stdout (updates inline)
-          logger.progress(`Progress: ${totalProcessed}/${tickers.length} (${pct}%) | Failed: ${failed} | Speed: ${speed} t/s | ETA: ${etaStr}`);
+          // Real-time console progress update
+          logger.progress(`Progress: ${totalProcessed}/${tickers.length} (${pct}%) | Skipped: ${skipped} | Failed: ${failed} | Speed: ${speed} t/s | ETA: ${etaStr}`);
 
-          // Log checkpoint to log file every 100 tickers
-          if (totalProcessed % 100 === 0 || totalProcessed === tickers.length) {
+          // Log checkpoint to log file every 500 tickers
+          if (totalProcessed % 500 === 0 || totalProcessed === tickers.length) {
             const elapsedMin = (elapsedSec / 60).toFixed(1);
-            logger.log(`Progress Checkpoint: ${totalProcessed}/${tickers.length} (${pct}%) | Failed: ${failed} | Speed: ${speed} t/s | Elapsed: ${elapsedMin} min`);
+            logger.log(`Checkpoint: ${totalProcessed}/${tickers.length} (${pct}%) | Skipped: ${skipped} | Failed: ${failed} | Speed: ${speed} t/s | Elapsed: ${elapsedMin} min`);
           }
         }
       });
     });
 
-    // Wait for all tasks to finish
     await Promise.all(tasks);
     logger.done();
 
     const totalTimeSec = ((Date.now() - startTime) / 1000).toFixed(1);
     logger.log(`Batch execution complete!`);
     logger.log(`Total processed: ${completed + failed} tickers`);
-    logger.log(`Successfully completed: ${completed}`);
+    logger.log(`Successfully completed: ${completed - skipped} (newly generated)`);
+    logger.log(`Skipped (already up-to-date): ${skipped}`);
     logger.log(`Failed: ${failed}`);
     logger.log(`Total time: ${totalTimeSec} seconds`);
 
   } finally {
-    // Close all cached DB connections
     await closeCachedDbConnections();
-    // Delete database temporary copy
     if (existsSync(tempDb)) {
       logger.log('Cleaning up temporary DB copy...');
       unlinkSync(tempDb);

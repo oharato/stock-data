@@ -6,5 +6,5 @@ export {
   fetchDailyPrices,
   fetchWeeklyPrices,
   fetchMonthlyPrices,
-  StockPriceRow,
 } from './duckdb/queries.js';
+export type { StockPriceRow } from './duckdb/queries.js';
