@@ -1,6 +1,6 @@
 // src/repository/yahoo.ts
 import YahooFinance from 'yahoo-finance2';
-import { mapRow } from '../logic/price-mapper.js';
+import { mapRow } from '../../data-fetcher/logic/price-mapper.js';
 import type { PriceRecord } from '../domain/types.js';
 
 const yahooFinance = new YahooFinance({ suppressNotices: ['ripHistorical'] });

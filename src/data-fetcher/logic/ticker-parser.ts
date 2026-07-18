@@ -1,4 +1,4 @@
-import type { Ticker } from '../domain/types.js';
+import type { Ticker } from '../../shared/domain/types.js';
 
 export function parseJpxRows(rows: any[][]): Ticker[] {
   return rows
@@ -19,6 +19,7 @@ export function parseJpxRows(rows: any[][]): Ticker[] {
         code: `${code}.T`,
         name: String(row[2] ?? ''),
         market: String(row[3] ?? ''),
+        sector33: String(row[5] ?? '').trim(),
       };
     });
 }

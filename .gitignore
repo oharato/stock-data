@@ -3,5 +3,5 @@ data/
 stock.duckdb
 errors.json
 tickers.json
-*.duckdb
+*.duckdb.*
 logs/

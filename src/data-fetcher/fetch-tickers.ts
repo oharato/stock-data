@@ -1,6 +1,5 @@
-import { fetchAndSaveTickers } from './repository/jpx.js';
-import { createLogger } from './logic/logger.js';
-
+import { fetchAndSaveTickers } from '../shared/repository/jpx.js';
+import { createLogger } from '../shared/logic/logger.js';
 const logger = createLogger('fetch-tickers');
 logger.log(`Starting fetch-tickers (log: ${logger.logFile})`);
 fetchAndSaveTickers()

@@ -2,6 +2,9 @@ export interface Ticker {
   code: string;   // e.g. "7203.T"
   name: string;   // e.g. "トヨタ自動車"
   market: string; // e.g. "プライム（内国株式）"
+  sector33?: string;
+  marketCap?: number;
+  ipoDate?: string;
 }
 
 export interface PriceRecord {

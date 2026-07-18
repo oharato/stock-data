@@ -1,9 +1,9 @@
 import { readFileSync, writeFileSync, existsSync, mkdirSync, statSync } from 'fs';
-import type { Ticker, ErrorRecord } from './domain/types.js';
-import { fetchTickerRange } from './repository/yahoo.js';
-import { buildDuckDb } from './repository/duckdb.js';
-import { fetchAndSaveTickers } from './repository/jpx.js';
-import { createLogger } from './logic/logger.js';
+import type { Ticker, ErrorRecord } from '../shared/domain/types.js';
+import { fetchTickerRange } from '../shared/repository/yahoo.js';
+import { buildDuckDb } from '../shared/repository/duckdb.js';
+import { fetchAndSaveTickers } from '../shared/repository/jpx.js';
+import { createLogger } from '../shared/logic/logger.js';
 
 const DELAY_MS = 1000;
 const RAW_DIR = 'data/raw';

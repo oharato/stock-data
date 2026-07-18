@@ -1,5 +1,5 @@
-import { buildDuckDb } from './repository/duckdb.js';
-import { createLogger } from './logic/logger.js';
+import { buildDuckDb } from '../shared/repository/duckdb.js';
+import { createLogger } from '../shared/logic/logger.js';
 
 const logger = createLogger('build-duckdb');
 logger.log(`Starting build-duckdb (log: ${logger.logFile})`);

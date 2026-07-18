@@ -1,6 +1,6 @@
 import { writeFileSync } from 'fs';
 import * as XLSX from 'xlsx';
-import { parseJpxRows } from '../logic/ticker-parser.js';
+import { parseJpxRows } from '../../data-fetcher/logic/ticker-parser.js';
 import type { Ticker } from '../domain/types.js';
 
 const JPX_URL =

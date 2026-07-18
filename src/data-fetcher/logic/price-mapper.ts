@@ -1,4 +1,4 @@
-import type { PriceRecord } from '../domain/types.js';
+import type { PriceRecord } from '../../shared/domain/types.js';
 
 export function mapRow(row: any, ticker: string): PriceRecord {
   return {
