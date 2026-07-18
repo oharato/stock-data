@@ -1,8 +1,8 @@
 import { readFileSync, writeFileSync, existsSync, mkdirSync, statSync } from 'fs';
 import type { Ticker, ErrorRecord } from '../shared/domain/types.js';
 import { fetchTickerRange } from '../shared/repository/yahoo.js';
+import { fetchAndSaveTickers } from './logic/merge-tickers.js';
 import { buildDuckDb } from '../shared/repository/duckdb.js';
-import { fetchAndSaveTickers } from '../shared/repository/jpx.js';
 import { createLogger } from '../shared/logic/logger.js';
 
 const DELAY_MS = 1000;
@@ -20,13 +20,13 @@ async function main() {
   const logger = createLogger('fetch');
   logger.log(`Starting fetch (log: ${logger.logFile})`);
 
-  // Step 1: tickers.json をJPXから最新に更新
-  logger.log('Step 1: Updating tickers.json from JPX...');
+  // Step 1: tickers.json をYahoo Financeから最新に更新
+  logger.log('Step 1: Updating tickers.json from Yahoo Finance...');
   let tickers: Ticker[] = [];
   try {
     tickers = await fetchAndSaveTickers();
   } catch (err) {
-    logger.error(`Failed to fetch tickers from JPX: ${err}`);
+    logger.error(`Failed to fetch tickers from Yahoo Finance: ${err}`);
     if (existsSync('tickers.json')) {
       logger.log('Using cached tickers.json');
       tickers = JSON.parse(readFileSync('tickers.json', 'utf-8'));

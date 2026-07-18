@@ -8,7 +8,7 @@ describe('parseJpxRows', () => {
       [20260531, 7203, 'トヨタ自動車', 'プライム（内国株式）', 25, '輸送用機器', 4, '自動車・輸送機', 2, 'TOPIX Large70'],
     ];
     expect(parseJpxRows(rows)).toEqual([
-      { code: '7203.T', name: 'トヨタ自動車', market: 'プライム（内国株式）' },
+      { code: '7203.T', name: 'トヨタ自動車', market: 'プライム（内国株式）', sector33: '輸送用機器' },
     ]);
   });
 

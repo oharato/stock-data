@@ -1,7 +1,7 @@
 // src/repository/yahoo.ts
 import YahooFinance from 'yahoo-finance2';
 import { mapRow } from '../../data-fetcher/logic/price-mapper.js';
-import type { PriceRecord } from '../domain/types.js';
+import type { PriceRecord, Ticker } from '../domain/types.js';
 
 const yahooFinance = new YahooFinance({ suppressNotices: ['ripHistorical'] });
 
@@ -46,4 +46,76 @@ export async function fetchTickerRange(
   );
   const quotes = result.quotes || [];
   return quotes.map(row => mapRow(row, ticker));
+}
+
+export async function fetchJpTickersFromYahoo(): Promise<Ticker[]> {
+  // Initialize cookies and crumb via a dummy request.
+  await yahooFinance.quote('AAPL');
+
+  const jar = (yahooFinance as any)._opts.cookieJar;
+  const cookies = await jar.getCookies('http://config.yf2/');
+  const crumb = cookies.find((c: any) => c.key === 'crumb')?.value;
+  if (!crumb) {
+    throw new Error('Failed to retrieve Yahoo Finance crumb');
+  }
+
+  const urlBase = 'https://query1.finance.yahoo.com/v1/finance/screener';
+  const pageSize = 250;
+  const allQuotes: any[] = [];
+
+  let offset = 0;
+  let total = Infinity;
+
+  while (offset < total) {
+    const body = {
+      offset,
+      size: pageSize,
+      sortField: 'ticker',
+      sortType: 'asc',
+      quoteType: 'EQUITY',
+      query: {
+        operator: 'AND',
+        operands: [
+          { operator: 'EQ', operands: ['region', 'jp'] },
+        ],
+      },
+    };
+
+    const cookieStr = await jar.getCookieString(urlBase);
+    const res = await fetch(`${urlBase}?crumb=${encodeURIComponent(crumb)}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        cookie: cookieStr,
+        origin: 'https://finance.yahoo.com',
+        referer: 'https://finance.yahoo.com/',
+      },
+      body: JSON.stringify(body),
+    });
+
+    if (!res.ok) {
+      throw new Error(`HTTP ${res.status} from Yahoo Finance screener`);
+    }
+
+    const json = await res.json();
+    const result = json.finance?.result?.[0];
+    if (!result) {
+      throw new Error('Unexpected response from Yahoo Finance screener');
+    }
+
+    total = result.total;
+    allQuotes.push(...result.quotes);
+
+    offset += pageSize;
+    if (offset < total) {
+      await new Promise(r => setTimeout(r, 100));
+    }
+  }
+
+  return allQuotes.map((q: any): Ticker => ({
+    code: q.symbol,
+    name: q.longName || q.shortName || q.symbol,
+    market: '',
+    sector33: '',
+  }));
 }

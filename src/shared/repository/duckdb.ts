@@ -107,11 +107,15 @@ export async function buildDuckDb(
         `);
 
         // Compute simulated IPO date from prices min date
+        // Only set for tickers with sufficient price history (>=5 rows) to avoid
+        // setting wrong dates for delisting-candidate stocks with sparse data
         console.log('Computing IPO dates from price history...');
         await conn.run(`
           UPDATE tickers
           SET ipo_date = (
-            SELECT MIN(date) FROM prices WHERE prices.ticker = tickers.code
+            SELECT MIN(date) FROM prices 
+            WHERE prices.ticker = tickers.code
+            HAVING COUNT(*) >= 5
           )
         `);
 
