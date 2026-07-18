@@ -5,6 +5,7 @@ import { copyFileSync, existsSync, unlinkSync } from 'fs';
 import { resolve } from 'path';
 import { DuckDBInstance } from '@duckdb/node-api';
 import { Viewer, TickerCard } from './views/Viewer.js';
+import { getSectors, getTickersCount, getTickers } from './logic/ticker-service.js';
 
 // Helper functions for TickerCard SSR
 const formatMarketCap = (val: any) => {
@@ -74,72 +75,21 @@ function cleanup() {
 process.on('SIGINT', cleanup);
 process.on('SIGTERM', cleanup);
 
-// Simple SQL String Escaper
-function escapeSql(str: string): string {
-  return str.replace(/'/g, "''");
-}
-
 app.get('/', async (c) => {
   const sector = c.req.query('sector') || '';
   const sort = c.req.query('sort') || 'code_asc';
   const search = c.req.query('search') || '';
   const page = parseInt(c.req.query('page') || '1', 10);
   const limit = 10;
-  const offset = (page - 1) * limit;
 
   const inst = await getDbInstance();
   const conn = await inst.connect();
 
   try {
-    // 1. Fetch unique sectors list for select input
-    const sectorRes = await conn.runAndReadAll(
-      "SELECT DISTINCT sector33::VARCHAR AS sector FROM tickers WHERE sector33 IS NOT NULL AND sector33 != '' ORDER BY sector ASC"
-    );
-    const sectors = sectorRes.getRowObjects().map((r: any) => r.sector);
-
-    // 2. Build WHERE filter queries
-    let whereClauses: string[] = [];
-    if (sector) {
-      whereClauses.push(`sector33 = '${escapeSql(sector)}'`);
-    }
-    if (search) {
-      const escapedSearch = escapeSql(search);
-      whereClauses.push(`(code LIKE '%${escapedSearch}%' OR name LIKE '%${escapedSearch}%')`);
-    }
-    const whereSql = whereClauses.length > 0 ? `WHERE ${whereClauses.join(' AND ')}` : '';
-
-    // 3. Build ORDER BY sorting queries
-    let orderSql = 'ORDER BY code ASC';
-    if (sort === 'market_cap_desc') {
-      orderSql = 'ORDER BY market_cap DESC NULLS LAST, code ASC';
-    } else if (sort === 'market_cap_asc') {
-      orderSql = 'ORDER BY market_cap ASC NULLS LAST, code ASC';
-    } else if (sort === 'ipo_date_desc') {
-      orderSql = 'ORDER BY ipo_date DESC NULLS LAST, code ASC';
-    } else if (sort === 'ipo_date_asc') {
-      orderSql = 'ORDER BY ipo_date ASC NULLS LAST, code ASC';
-    }
-
-    // 4. Fetch total count of filtered rows for pagination
-    const countRes = await conn.runAndReadAll(`SELECT COUNT(*)::BIGINT AS count FROM tickers ${whereSql}`);
-    const totalCount = Number(countRes.getRowObjects()[0].count);
+    const sectors = await getSectors(conn);
+    const totalCount = await getTickersCount(conn, { sector, search });
     const totalPages = Math.ceil(totalCount / limit);
-
-    // 5. Fetch tickers for current page
-    const tickersRes = await conn.runAndReadAll(`
-      SELECT 
-        code::VARCHAR AS code,
-        name::VARCHAR AS name,
-        market::VARCHAR AS market,
-        sector33::VARCHAR AS sector33,
-        market_cap::BIGINT AS market_cap,
-        ipo_date::VARCHAR AS ipo_date
-      FROM tickers
-      ${whereSql}
-      ${orderSql}
-      LIMIT ${limit} OFFSET ${offset}
-    `);
-    const tickers = tickersRes.getRowObjects() as any[];
+    const tickers = await getTickers(conn, { sector, search, sort, page, limit });
 
     // Render HTML JSX component page
     return c.html(
@@ -168,47 +118,12 @@ app.get('/api/tickers/html', async (c) => {
   const search = c.req.query('search') || '';
   const page = parseInt(c.req.query('page') || '1', 10);
   const limit = 10;
-  const offset = (page - 1) * limit;
 
   const inst = await getDbInstance();
   const conn = await inst.connect();
 
   try {
-    let whereClauses: string[] = [];
-    if (sector) {
-      whereClauses.push(`sector33 = '${escapeSql(sector)}'`);
-    }
-    if (search) {
-      const escapedSearch = escapeSql(search);
-      whereClauses.push(`(code LIKE '%${escapedSearch}%' OR name LIKE '%${escapedSearch}%')`);
-    }
-    const whereSql = whereClauses.length > 0 ? `WHERE ${whereClauses.join(' AND ')}` : '';
-
-    let orderSql = 'ORDER BY code ASC';
-    if (sort === 'market_cap_desc') {
-      orderSql = 'ORDER BY market_cap DESC NULLS LAST, code ASC';
-    } else if (sort === 'market_cap_asc') {
-      orderSql = 'ORDER BY market_cap ASC NULLS LAST, code ASC';
-    } else if (sort === 'ipo_date_desc') {
-      orderSql = 'ORDER BY ipo_date DESC NULLS LAST, code ASC';
-    } else if (sort === 'ipo_date_asc') {
-      orderSql = 'ORDER BY ipo_date ASC NULLS LAST, code ASC';
-    }
-
-    const tickersRes = await conn.runAndReadAll(`
-      SELECT 
-        code::VARCHAR AS code,
-        name::VARCHAR AS name,
-        market::VARCHAR AS market,
-        sector33::VARCHAR AS sector33,
-        market_cap::BIGINT AS market_cap,
-        ipo_date::VARCHAR AS ipo_date
-      FROM tickers
-      ${whereSql}
-      ${orderSql}
-      LIMIT ${limit} OFFSET ${offset}
-    `);
-    const tickers = tickersRes.getRowObjects() as any[];
+    const tickers = await getTickers(conn, { sector, search, sort, page, limit });
 
     if (tickers.length === 0) {
       return c.text('');
