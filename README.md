@@ -1,101 +1,144 @@
-# 日本株データパイプライン (stock-data)
+# 日本株データパイプライン & 静的チャートビューア (stock-data)
 
-日本取引所グループ (JPX) の銘柄一覧から、Yahoo Finance API を用いて全銘柄の日足データ（2000年〜本日）を取得し、分析用高速データベースである **DuckDB** に格納するデータパイプラインシステムです。
+本プロジェクトは、Yahoo Finance から日本株データを自動取得して高速データベース **DuckDB** を構築し、テクニカル指標（移動平均線）を描画したチャート画像（日足・週足・月足）を WebP 形式で生成するデータパイプラインです。
+
+生成されたチャートと銘柄メタデータは、GitHub Actions 上で自動ビルドされて **GitHub Pages** に完全静的サイト（JAMstack / SPA）としてデプロイされます。サーバー要らずで、ブラウザ側（クライアントサイド）での遅延ゼロの超高速な検索・フィルタリング・ソートを実現しています。
 
 ---
 
-## 1. アーキテクチャ構成
-
-中間レイヤーとして Parquet などを挟まず、APIから取得したデータをそのまま JSON キャッシュとしてローカルに保存し、そこから直接 DuckDB データベースを再構築するシンプルな構成になっています。
+## 1. システム構成・ディレクトリ構造
 
 ```
 stock-data/
 ├── data/
-│   └── raw/
-│       ├── 7203.T.json      ← 各銘柄の全期間日足データ（中間キャッシュ）
-│       └── ...
-├── stock.duckdb             ← 分析用の最終DB（JSONキャッシュから自動ビルド）
-├── tickers.json             ← JPXからダウンロードした最新の銘柄一覧
-├── errors.json              ← 取得エラー履歴
+│   ├── raw/                 ← 各銘柄の全期間日足データ (JSONキャッシュ)
+│   ├── charts/              ← 生成された WebP チャート画像 (日足/週足/月足)
+│   └── tickers.json         ← Yahoo Finance から抽出した最新の全銘柄情報 (Git管理キャッシュ)
+├── dist/                    ← GitHub Pages デプロイ用の完全静的サイト出力 (Git除外)
+│   ├── index.html           ← 静的レンダリングされた HTML ビューア
+│   ├── public/
+│   │   ├── viewer.css       ← デザインスタイルシート
+│   │   ├── viewer.js        ← クライアントサイドでのフィルタ・ページング・DOM生成ロジック
+│   │   └── data.json        ← 全銘柄のメタデータリスト (時価総額・上場日等, 約 800 KB)
+│   └── charts/              ← 生成された WebP 画像コピー
+├── stock.duckdb             ← ローカル分析用の統合データベース (Git除外)
 ├── src/
-│   ├── repository/
-│   │   ├── jpx.ts           ← JPXからの銘柄リストダウンロード
-│   │   ├── yahoo.ts         ← Yahoo Finance (Chart API) からのデータ取得
-│   │   └── duckdb.ts        ← DuckDBの構築・アトミック更新
-│   ├── fetch.ts             ← 統合データ取得・DB構築スクリプト（メイン）
-│   └── build-duckdb.ts      ← DB手動再構築用スクリプト
+│   ├── data-fetcher/        ← データ取得・マージ・DuckDB構築ロジック
+│   ├── chart-generator/     ← テクニカルチャート画像 (WebP) 生成バッチ
+│   ├── chart-viewer/        ← ビューア用 UI スケルトン (Layout.tsx, Viewer.tsx)
+│   ├── static-builder/      ← 静的サイトエクスポートビルダー (build.ts)
+│   └── shared/              ← 共通リポジトリ (DuckDB 接続・Yahoo API 等)
 ```
 
 ---
 
 ## 2. 主要な機能特徴
 
-### ① 統合された実行フロー (`npm run fetch`)
-以前の `fetch-initial` (初回全件) と `fetch-update` (日次差分) は1つの処理に統合されました。
-毎回「2000年1月1日〜本日」を指定して各銘柄の全データをYahoo Financeから取得し、キャッシュを完全に上書きします。これにより、複雑なマージ・重複排除ロジックを排除し、データの整合性を担保しています。
-
-### ② ファイル更新日時 (`mtime`) によるレジューム機能
-約4,000銘柄のデータ取得にはウェイト処理を挟むため、全体で約1時間強かかります。
-途中でエラーや強制終了が発生した場合でも、再度スクリプトを実行するだけで **「本日すでに取得が完了した銘柄（JSONファイルの更新日時が本日のもの）」を自動的にスキップ** し、未処理の銘柄から処理を再開します。翌日になると自動的にタイムスタンプが「昨日以前」になるため、特別なリセットを行わずに次の日の取得が始まります。
-
-### ③ アトミックなDB構築によるロック競合回避
-他アプリが `stock.duckdb` を読み取り専用で開いている場合でもバッチが停止しないよう、構築時は一時ファイル `stock.duckdb.tmp` に対して書き込みを行い、完全にビルドが終わった段階で元のファイルにアトミックに差し替える (`renameSync`) ように設計されています。
+* **GitHub Pages への JAMstack 移行**:
+  Node.js サーバーを不要にし、クライアントサイド JavaScript が `data.json` をロードして検索・業種フィルタ・ソート（時価総額、上場日）をすべてブラウザ上で処理します。サーバーとの通信が発生しないため、条件切り替えが遅延ゼロで瞬時に行われます。
+* **ファイル更新日時によるレジューム機能**:
+  大量のデータ取得（数時間）の途中でエラーや強制終了が発生しても、JSON キャッシュの更新日時を確認し、**「本日すでに取得した銘柄」を自動スキップ** して未処理の銘柄から再開します。
+* **チャート生成のインクリメンタル（差分）更新**:
+  画像生成時、DuckDB 内の最終取引日と既存の WebP 画像のタイムスタンプを比較し、**最新データがすでに描画済みの場合は生成をスキップ** します。これにより、日次の定期バッチはほぼ瞬時（約 0.6 秒）に終了します。
+* **アトミックなDB構築**:
+  DuckDB の構築時は一時ファイル `stock.duckdb.tmp` に書き込みを行い、ビルドが成功した段階でリネームして本番DBと差し替えることで、他プロセスが読み取り専用で開いている状態でもロック競合を起こさずに更新できます。
 
 ---
 
-## 3. コマンド
+## 3. コマンド一覧
 
-### 銘柄リストの更新
-```bash
-npm run fetch-tickers
-```
-JPXの公式リストをダウンロードし、`tickers.json` を最新化します。
+### データ収集・静的サイトビルド
 
-### データ取得とDB構築 (日次の自動実行用)
+#### 🔄 フルビルド（データ取得から静的エクスポートまで）
 ```bash
-npm run fetch
+npm run all:static
 ```
-`tickers.json` の更新後、Yahoo Finance から日足データを取得して `data/raw/*.json` を最新化し、最後に `stock.duckdb` を再構築します（※前述の通りレジュームが有効です）。
+銘柄一覧取得 ➔ 株価履歴取得 ➔ DuckDB構築 ➔ チャート画像生成 ➔ `dist/` への静的ファイル出力、をすべて一貫して実行します。GitHub Actions 上のデプロイで実行されるコマンドです。
 
-### DuckDB の手動再ビルド (キャッシュからのみ)
+#### 📦 静的エクスポート単体実行
 ```bash
-npm run build-duckdb
+npm run build:static
 ```
-APIへの問い合わせを行わず、すでに `data/raw/` 以下に保存されている JSON キャッシュのみを用いて、`stock.duckdb` を一瞬で再構築します。DBスキーマを変更した際などに便利です。
+すでにローカルにある `stock.duckdb` とチャート画像群（`data/charts/`）を用いて、`dist/` ディレクトリ配下に静的 Web サイト（`data.json` や HTML）を一括エクスポートします。
 
-### 全プロセスの順次一括実行
+#### 👁️ ローカルでの動作確認（プレビュー）
 ```bash
-npm run all
+npm run preview
 ```
-`fetch-tickers` (銘柄更新) -> `fetch` (データ取得) -> `build-duckdb` (DB再構築) の3つのコマンドを順番に実行します。前ステップが正常に成功した場合のみ次へ進みます。定期実行の際などに便利です。
+簡易的な静的ファイルサーバーを立ち上げ、`dist/` 配下の静的ビューアをローカルホストでテストできます。GitHub Pages 上にデプロイされた際と **100% 同等の挙動**（検索やフィルタ）を確認できます。
 
-### テストの実行
-```bash
-npm run test
-```
-Vitest を使用してユニットテストを実行します。
+### 開発・検証用コマンド
+
+* **`npm run fetch-tickers`**: 銘柄リスト (`data/tickers.json`) の新規取得。
+* **`npm run fetch`**: 株価詳細データ取得と `data/raw/` への JSON キャッシュ化。
+* **`npm run build-duckdb`**: キャッシュ JSON からの `stock.duckdb` データベース再構築。
+* **`npm run generate-batch`**: テクニカルチャート WebP 画像の差分生成。
+* **`npm run test`**: Vitest によるユニットテストの実行。
 
 ---
 
-## 4. 他アプリケーションから DuckDB を利用する際の実装アドバイス
+## 4. GitHub Actions による自動化 & デプロイ
 
-同じサーバー上で動く別のWebアプリケーションやAPIから `stock.duckdb` を参照したい場合、**「直接 `READ_ONLY` モードでファイルに接続する」** 方法がオーバーヘッドがなく最も高速です。
+本プロジェクトは、`.github/workflows/deploy.yml` で定義された GitHub Actions ワークフローにより、平日の日本時間 18:00 に自動的に実行されます。
 
-パイプライン側が一時ファイルを構築した後にリネーム上書きする設計になっているため、別アプリ側で接続を開きっぱなしにしていても、データ更新バッチがロックエラーで失敗することはありません。
+* **キャッシュ (GitHub Cache) の活用**:
+  `actions/cache@v4` を使用して `stock.duckdb` と `data/charts/` フォルダをビルド間でキャッシュしています。これにより、GitHub Actions 上でも「差分更新（スキップ）」が有効に働き、2回目以降のビルド時間は **数十秒〜1分程度** で終わるように最適化されています。
+* **自動リリースアップロード**:
+  ビルド完了時、 Actions 上で構築された最新の `stock.duckdb` データベースファイルが、自動的に GitHub Releases の `latest` リリースにアセットとして上書き更新されます。
+
+---
+
+## 5. 最新データベース (DuckDB) のクイック同期 (ダウンロード)
+
+ローカル環境で時間のかかる株価データのスクレイピングを直接動かさなくても、GitHub Releases にアップロードされた最新の `stock.duckdb` をダウンロードしてローカルで即座に分析などに利用できます。
+
+### 📥 同期コマンド (GitHub CLI)
+```bash
+gh release download latest -p "stock.duckdb" --clobber
+```
+* **`--clobber`**: ローカルにある既存の古い `stock.duckdb` を、ダウンロードした最新のデータベースファイルで自動的に上書きします。
+* ※ 本コマンドの利用には、[GitHub CLI (gh)](https://cli.github.com/) のインストールおよび `gh auth login` によるログインが必要です。
+
+---
+
+## 6. MCP (Model Context Protocol) を用いたデータ分析
+
+AIアシスタント（Cursor、Cline、Claude Desktop など）から本プロジェクト of the DuckDB に直接アクセスし、自然言語で日本株のデータ分析を行うための接続設定です。
+
+### 接続設定 (`mcp.json`)
+AIクライアントの MCP 設定ファイルに以下を追記します。
+
+```json
+{
+  "mcpServers": {
+    "duckdb-local": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "mcp-duckdb-local",
+        "--db-path",
+        "/absolute/path/to/stock-data/stock.duckdb"
+      ]
+    }
+  }
+}
+```
+
+---
+
+## 7. 他プログラムから DuckDB を利用する際の実装アドバイス
+
+同じマシン内の別のプログラムから `stock.duckdb` を参照する場合、**`READ_ONLY` モードで直接ファイルに接続する** のが最も高速です。
+
+バッチ更新時は別の一時ファイルに構築したあとアトミックにリネーム差し替えされるため、別アプリ側で接続を開きっぱなしにしていても、データ更新バッチがロックエラーで失敗することはありません。
 
 ### 実装サンプル (TypeScript / Node.js)
-
-`@duckdb/node-api` を用いて、必ず **`access_mode: 'READ_ONLY'`** オプションを明示して接続してください。
-
 ```typescript
 import { DuckDBInstance } from '@duckdb/node-api';
-import { resolve } from 'path';
 
 async function queryStockData() {
-  const dbPath = resolve('path/to/stock-data/stock.duckdb');
-  
   // 読み取り専用モードでインスタンスを作成
-  const inst = await DuckDBInstance.create(dbPath, {
+  const inst = await DuckDBInstance.create('stock.duckdb', {
     access_mode: 'READ_ONLY'
   });
   
@@ -107,132 +150,9 @@ async function queryStockData() {
     const rows = result.getRowObjects();
     console.log(rows);
   } finally {
-    // 接続の解除とインスタンスのクローズ
     conn.disconnectSync();
     inst.closeSync();
   }
 }
 ```
-
-*※注意: Linux環境下では、バッチ更新によってファイルがリネーム差し替えされた場合、接続中のプロセスは古いDBの実体を参照し続けます。最新のデータを反映させるためには、クエリを実行するたびに新しく接続を確立するか、定期的に再接続を行うように実装してください。*
-
----
-
-## 5. 定期実行 (systemd)
-
-本システムは、systemd のユーザーサービスおよびタイマー機能（`systemd --user`）を利用して、日次で自動実行することができます。
-
-設定ファイルはリポジトリの [systemd/](file:///home/oharato/workspace/stock-data/systemd) ディレクトリ以下に格納されており、ユーザー設定ディレクトリとシンボリックリンクで紐付けることで動作します。
-
-### セットアップ手順
-
-1. **設定ファイルをユーザーの systemd ディレクトリへシンボリックリンク**
-   ```bash
-   mkdir -p ~/.config/systemd/user/
-   ln -sf $(pwd)/systemd/stock-data.service ~/.config/systemd/user/stock-data.service
-   ln -sf $(pwd)/systemd/stock-data.timer ~/.config/systemd/user/stock-data.timer
-   ```
-
-2. **systemd デーモンの再読み込みとタイマーの有効化・起動**
-   ```bash
-   systemctl --user daemon-reload
-   systemctl --user enable --now stock-data.timer
-   ```
-
-3. **(推奨) ログアウト中も実行を継続させる設定**
-   デフォルトでは、ユーザーがログインしている間のみタイマーが動作します。ログアウト中も常時稼働させるため、ユーザーの「Linger (常駐)」を有効化してください。
-   ```bash
-   loginctl enable-linger $(whoami)
-   ```
-
-### 管理・デバッグコマンド
-
-* **タイマーの稼働状態・次回実行予定の確認:**
-  ```bash
-  systemctl --user status stock-data.timer
-  ```
-* **手動での即時テスト実行:**
-  ```bash
-  systemctl --user start stock-data.service
-  ```
-* **実行ログの確認 (リアルタイム追跡):**
-  標準出力および標準エラー出力は、リポジトリ内の `logs/systemd.log` に自動的に保存（追記）されます。
-  * **ログファイルの確認:**
-    ```bash
-    tail -f logs/systemd.log
-    ```
-  * **systemd ログ (journald) での確認:**
-    ```bash
-    journalctl --user -u stock-data.service -f
-    ```
-
----
-
-## 6. MCP (Model Context Protocol) を用いたデータ分析
-
-AIアシスタント（Cursor、Claude Desktop、Clineなど）から本プロジェクトの DuckDB に直接アクセスして自然言語で分析できるようにするための、MCP設定手順です。Node.js製の `mcp-duckdb-local` を使用します。
-
-### ① ローカル環境での接続設定
-同一PC上のAIクライアントから接続する場合、クライアントのMCP設定ファイル（`mcp.json` や `mcp_config.json`）に以下を追加します。
-
-```json
-{
-  "mcpServers": {
-    "duckdb-local": {
-      "command": "npx",
-      "args": [
-        "-y",
-        "mcp-duckdb-local",
-        "--db-path",
-        "/home/oharato/workspace/stock-data/stock.duckdb"
-      ]
-    }
-  }
-}
-```
-
-### ② 別PC（リモート）から SSH 経由での接続設定
-別のPCからネットワーク経由（SSH経由の標準入出力）で本PCの DuckDB に接続し、安全に分析を実行する場合の設定です。
-
-#### 1. 前提条件
-*   クライアント側（別PC）からサーバー側（本PC）へ、**パスワード入力なし（SSH公開鍵認証）**でSSHログインできる状態にしておいてください。
-
-#### 2. クライアント側（別PC）の設定ファイル (`mcp.json`)
-
-特にサーバー側で **NVM (Node Version Manager)** を使って Node.js を管理している場合、SSH経由の非インタラクティブセッションでは `node`/`npx` へのパスが失われるため、以下のように `PATH` を明示的に export し、絶対パスで指定する必要があります。
-
-```json
-{
-  "mcpServers": {
-    "duckdb-remote-ssh": {
-      "type": "stdio",
-      "command": "ssh",
-      "args": [
-        "oharato@nuc7.local",
-        "export PATH=/home/oharato/.nvm/versions/node/v24.13.0/bin:$PATH && /home/oharato/.nvm/versions/node/v24.13.0/bin/npx -y mcp-duckdb-local --db-path /home/oharato/workspace/stock-data/stock.duckdb --read-write"
-      ]
-    }
-  }
-}
-```
-
-*   **`export PATH=... && <npxの絶対パス> ...`**: NVM環境下で `npx` や `node` のコマンドが見つからない問題（Command not found）を回避するための設定です。
-*   **`--read-write`**: 必要に応じて書き込み権限を有効にするオプションです。
-
----
-
-## 7. 最新データベース (DuckDB) のクイック同期 (ダウンロード)
-
-GitHub Actions の定期ビルドによって自動構築・更新された最新の `stock.duckdb` データベースファイルは、リポジトリの GitHub Releases (`latest`) に自動でアップロード・更新されています。
-
-ローカル環境で面倒なスクレイピング（`npm run fetch`）を実行しなくとも、以下の GitHub CLI コマンドを実行するだけで、一瞬で最新のデータベースファイルをローカルに同期（ダウンロード）して利用可能です。
-
-### 📥 同期コマンド (GitHub CLI)
-```bash
-gh release download latest -p "stock.duckdb" --clobber
-```
-* **`--clobber`**: ローカルにある既存の古い `stock.duckdb` ファイルを、ダウンロードした最新データで自動的に上書きします。
-
-※ 本コマンドの利用には [GitHub CLI (gh コマンド)](https://cli.github.com/) のインストールおよび `gh auth login` によるログインが必要です。
-
-
+*※注意: Linux環境下では、ファイルがリネーム差し替えされた場合、接続中のプロセスは古いDBの実体（inode）を参照し続けます。最新データを取得するためには、クエリごとに接続を再確立するか、定期的な再接続を行ってください。*
