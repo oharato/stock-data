@@ -241,10 +241,11 @@ function getFreePort(startPort: number): Promise<number> {
 async function startServer() {
   const defaultPort = parseInt(process.env.PORT || '3000', 10);
   const port = await getFreePort(defaultPort);
-  console.log(`\n🚀 Stock Chart Viewer starting on http://localhost:${port}`);
+  console.log(`\n🚀 Stock Chart Viewer starting on port ${port} (bound to 0.0.0.0 for external access)`);
   serve({
     fetch: app.fetch,
-    port
+    port,
+    hostname: '0.0.0.0'
   });
 }
 

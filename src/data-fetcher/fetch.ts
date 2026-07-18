@@ -20,15 +20,18 @@ async function main() {
   const logger = createLogger('fetch');
   logger.log(`Starting fetch (log: ${logger.logFile})`);
 
-  // Step 1: tickers.json をYahoo Financeから最新に更新
-  logger.log('Step 1: Updating tickers.json from Yahoo Finance...');
+  // Step 1: data/tickers.json をYahoo Financeから最新に更新
+  logger.log('Step 1: Updating data/tickers.json from Yahoo Finance...');
   let tickers: Ticker[] = [];
   try {
-    tickers = await fetchAndSaveTickers();
+    tickers = await fetchAndSaveTickers('data/tickers.json');
   } catch (err) {
     logger.error(`Failed to fetch tickers from Yahoo Finance: ${err}`);
-    if (existsSync('tickers.json')) {
-      logger.log('Using cached tickers.json');
+    if (existsSync('data/tickers.json')) {
+      logger.log('Using cached data/tickers.json');
+      tickers = JSON.parse(readFileSync('data/tickers.json', 'utf-8'));
+    } else if (existsSync('tickers.json')) {
+      logger.log('Using legacy cached tickers.json');
       tickers = JSON.parse(readFileSync('tickers.json', 'utf-8'));
     } else {
       logger.error('No tickers.json found. Exiting.');

@@ -45,7 +45,7 @@ export async function readDbMaxDate(dbPath: string = 'stock.duckdb'): Promise<st
 export async function buildDuckDb(
   rawGlob: string = 'data/raw/*.json',
   dbPath: string = 'stock.duckdb',
-  tickersPath: string = 'tickers.json'
+  tickersPath: string = 'data/tickers.json'
 ): Promise<void> {
   const absGlob = resolve(rawGlob).replace(/\\/g, '/');
   const absDb = resolve(dbPath);
