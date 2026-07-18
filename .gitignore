@@ -1,9 +1,8 @@
 node_modules/
-data/
+data/*
 !data/tickers.json
 stock.duckdb
 errors.json
-tickers.json
 *.duckdb.*
 logs/
 dist/
