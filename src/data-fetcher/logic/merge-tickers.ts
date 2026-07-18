@@ -125,7 +125,7 @@ export async function fetchAndSaveTickers(outputPath = 'data/tickers.json'): Pro
     }
   }
 
-  const limit = pLimit(3); // Fetch 3 details concurrently
+  const limit = pLimit(1); // Fetch 1 detail at a time (sequential) to be polite
   const merged: Ticker[] = [];
   let fetchedCount = 0;
 
@@ -148,12 +148,13 @@ export async function fetchAndSaveTickers(outputPath = 'data/tickers.json'): Pro
           sector33: detail.sector33,
         });
         fetchedCount++;
-        // Slight delay to be polite
-        await new Promise((resolve) => setTimeout(resolve, 200));
       } catch (err) {
         console.error(`Failed to fetch detail for ${yt.code}: ${err}`);
         // Push with fallback name
         merged.push(yt);
+      } finally {
+        // Polite delay of 1.0 second between requests (applied to both success and failure cases)
+        await new Promise((resolve) => setTimeout(resolve, 1000));
       }
     });
   });
