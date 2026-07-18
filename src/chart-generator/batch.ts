@@ -1,5 +1,6 @@
 import { promises as fs, mkdirSync, existsSync, copyFileSync, unlinkSync } from 'fs';
 import { join, resolve } from 'path';
+import os from 'os';
 import { DuckDBInstance } from '@duckdb/node-api';
 import pLimit from 'p-limit';
 import sharp from 'sharp';
@@ -15,8 +16,9 @@ import { createLogger } from '../shared/logic/logger.js';
 // Optimize sharp image generation concurrency to avoid thread contention
 sharp.concurrency(1);
 
-// Concurrency limit for parallel I/O-bound tasks
-const CONCURRENCY_LIMIT = 10;
+// Determine dynamic concurrency limit based on the execution server's CPU threads (min 4, max 32)
+const cpuCores = os.cpus().length;
+const CONCURRENCY_LIMIT = Math.max(4, Math.min(cpuCores * 3, 32));
 
 interface TickerRow {
   code: string;
@@ -62,6 +64,7 @@ async function getLatestDatesFromDb(dbPath: string): Promise<Map<string, string>
 async function main() {
   const logger = createLogger('generate-charts-batch');
   logger.log(`Starting optimized batch chart generation (log: ${logger.logFile})`);
+  logger.log(`Detected ${cpuCores} CPU cores. Dynamic concurrency limit set to: ${CONCURRENCY_LIMIT}`);
 
   // Ensure output directories exist
   const baseDir = './data/charts';
