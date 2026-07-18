@@ -229,9 +229,9 @@
   },
   {
     "code": "1449@S.T",
-    "name": "FUJI JAPAN CO LTD",
-    "market": "",
-    "sector33": ""
+    "name": "1449@S.T",
+    "market": "札証",
+    "sector33": "建設業"
   },
   {
     "code": "1450.T",
@@ -481,9 +481,9 @@
   },
   {
     "code": "1771@F.T",
-    "name": "NIPPON KANRYU INDUSTRY CO",
-    "market": "",
-    "sector33": ""
+    "name": "日本乾溜工業",
+    "market": "福証",
+    "sector33": "建設業"
   },
   {
     "code": "1773.T",
@@ -649,9 +649,9 @@
   },
   {
     "code": "1832@S.T",
-    "name": "HOKKAIDENKO CORPORATION",
-    "market": "",
-    "sector33": ""
+    "name": "1832@S.T",
+    "market": "札証",
+    "sector33": "建設業"
   },
   {
     "code": "1833.T",
@@ -1129,9 +1129,9 @@
   },
   {
     "code": "1999@F.T",
-    "name": "SAITA HOLDINGS",
-    "market": "",
-    "sector33": ""
+    "name": "サイタホールディングス",
+    "market": "福証",
+    "sector33": "建設業"
   },
   {
     "code": "2001.T",
@@ -1177,9 +1177,9 @@
   },
   {
     "code": "2058@F.T",
-    "name": "HIGASHIMARU CO LTD",
-    "market": "",
-    "sector33": ""
+    "name": "2058@F.T",
+    "market": "福証",
+    "sector33": "食料品"
   },
   {
     "code": "205A.T",
@@ -1297,9 +1297,9 @@
   },
   {
     "code": "2137@S.T",
-    "name": "HIKARI HEIGHTS-VARUS CO.LTD.",
-    "market": "",
-    "sector33": ""
+    "name": "2137@S.T",
+    "market": "札幌ア",
+    "sector33": "サービス業"
   },
   {
     "code": "2138.T",
@@ -1411,9 +1411,9 @@
   },
   {
     "code": "2172@S.T",
-    "name": "INSIGHT INC",
-    "market": "",
-    "sector33": ""
+    "name": "2172@S.T",
+    "market": "札証",
+    "sector33": "サービス業"
   },
   {
     "code": "2173.T",
@@ -1567,9 +1567,9 @@
   },
   {
     "code": "2218@S.T",
-    "name": "NICHIRYO BAKING CO",
-    "market": "",
-    "sector33": ""
+    "name": "日糧製パン",
+    "market": "札証",
+    "sector33": "食料品"
   },
   {
     "code": "2220.T",
@@ -1759,9 +1759,9 @@
   },
   {
     "code": "231A@F.T",
-    "name": "CROSS E HOLDINGS CORPORATION LI",
-    "market": "",
-    "sector33": ""
+    "name": "Ｃｒｏｓｓ　Ｅホールディングス",
+    "market": "福岡Q",
+    "sector33": "建設業"
   },
   {
     "code": "2321.T",
@@ -2047,9 +2047,9 @@
   },
   {
     "code": "242A@F.T",
-    "name": "REPRIORITY CORPORATION",
-    "market": "",
-    "sector33": ""
+    "name": "242A@F.T",
+    "market": "福岡Q",
+    "sector33": "サービス業"
   },
   {
     "code": "2432.T",
@@ -2383,8 +2383,8 @@
   },
   {
     "code": "25935.T",
-    "name": "ITO EN LTD NPV PRF STOCK TYPE 1",
-    "market": "",
+    "name": "(株)伊藤園第1種優先株式",
+    "market": "プライム（内国株式）",
     "sector33": ""
   },
   {
@@ -2647,9 +2647,9 @@
   },
   {
     "code": "272A@F.T",
-    "name": "GREEN CROSS HOLDINGS CO LTD",
-    "market": "",
-    "sector33": ""
+    "name": "272A@F.T",
+    "market": "福証",
+    "sector33": "卸売業"
   },
   {
     "code": "2730.T",
@@ -3157,9 +3157,9 @@
   },
   {
     "code": "2919@F.T",
-    "name": "MARUTAI CO LTD",
-    "market": "",
-    "sector33": ""
+    "name": "2919@F.T",
+    "market": "福証",
+    "sector33": "食料品"
   },
   {
     "code": "291A.T",
@@ -3199,9 +3199,9 @@
   },
   {
     "code": "2928@S.T",
-    "name": "RIZAP GROUP INC",
-    "market": "",
-    "sector33": ""
+    "name": "ＲＩＺＡＰグループ",
+    "market": "札幌ア",
+    "sector33": "小売業"
   },
   {
     "code": "2929.T",
@@ -3301,9 +3301,9 @@
   },
   {
     "code": "2974@F.T",
-    "name": "DAIEISANGYO CO LTD",
-    "market": "",
-    "sector33": ""
+    "name": "大英産業",
+    "market": "福証",
+    "sector33": "不動産業"
   },
   {
     "code": "2975.T",
@@ -3565,9 +3565,9 @@
   },
   {
     "code": "3047@F.T",
-    "name": "TRUCK-ONE CO",
-    "market": "",
-    "sector33": ""
+    "name": "3047@F.T",
+    "market": "福岡Q",
+    "sector33": "卸売業"
   },
   {
     "code": "3048.T",
@@ -3601,9 +3601,9 @@
   },
   {
     "code": "3055@S.T",
-    "name": "HOKUYAKU TAKEYAMA HOLDINGS INC",
-    "market": "",
-    "sector33": ""
+    "name": "3055@S.T",
+    "market": "札証",
+    "sector33": "卸売業"
   },
   {
     "code": "3058.T",
@@ -5209,9 +5209,9 @@
   },
   {
     "code": "353A@F.T",
-    "name": "ELEVATOR COMMUNICATIONS CO LTD",
-    "market": "",
-    "sector33": ""
+    "name": "エレベーターコミュニケーションズ",
+    "market": "福証",
+    "sector33": "サービス業"
   },
   {
     "code": "3542.T",
@@ -6061,9 +6061,9 @@
   },
   {
     "code": "3824@F.T",
-    "name": "MEDIA FIVE CO.",
-    "market": "",
-    "sector33": ""
+    "name": "メディアファイブ",
+    "market": "福岡Q",
+    "sector33": "情報・通信業"
   },
   {
     "code": "3825.T",
@@ -6151,9 +6151,9 @@
   },
   {
     "code": "3849@S.T",
-    "name": "NIPPON TECHNO LAB INC.",
-    "market": "",
-    "sector33": ""
+    "name": "日本テクノ・ラボ",
+    "market": "札幌ア",
+    "sector33": "情報・通信業"
   },
   {
     "code": "3850.T",
@@ -6625,9 +6625,9 @@
   },
   {
     "code": "3977@S.T",
-    "name": "FUSION CO LTD (JP)",
-    "market": "",
-    "sector33": ""
+    "name": "フュージョン",
+    "market": "札幌ア",
+    "sector33": "情報・通信業"
   },
   {
     "code": "3979.T",
@@ -6787,9 +6787,9 @@
   },
   {
     "code": "4018@F.T",
-    "name": "GEOLOCATION TECHNOLOGY INC",
-    "market": "",
-    "sector33": ""
+    "name": "4018@F.T",
+    "market": "福岡Q",
+    "sector33": "情報・通信業"
   },
   {
     "code": "4019.T",
@@ -7591,9 +7591,9 @@
   },
   {
     "code": "4250@F.T",
-    "name": "FRONTIER INC",
-    "market": "",
-    "sector33": ""
+    "name": "4250@F.T",
+    "market": "福岡Q",
+    "sector33": "化学"
   },
   {
     "code": "4251.T",
@@ -9583,9 +9583,9 @@
   },
   {
     "code": "4827@F.T",
-    "name": "BUSINESS ONE HOLDINGS INC",
-    "market": "",
-    "sector33": ""
+    "name": "ビジネス・ワンホールディングス",
+    "market": "福岡Q",
+    "sector33": "不動産業"
   },
   {
     "code": "4828.T",
@@ -9613,9 +9613,9 @@
   },
   {
     "code": "4834@S.T",
-    "name": "CAREER BANK",
-    "market": "",
-    "sector33": ""
+    "name": "キャリアバンク",
+    "market": "札証",
+    "sector33": "サービス業"
   },
   {
     "code": "4838.T",
@@ -10033,9 +10033,9 @@
   },
   {
     "code": "4995@F.T",
-    "name": "SANKEI CHEMICALS CO",
-    "market": "",
-    "sector33": ""
+    "name": "サンケイ化学",
+    "market": "福証",
+    "sector33": "化学"
   },
   {
     "code": "4996.T",
@@ -10189,9 +10189,9 @@
   },
   {
     "code": "5039@S.T",
-    "name": "KITALIVE INC",
-    "market": "",
-    "sector33": ""
+    "name": "5039@S.T",
+    "market": "札幌ア",
+    "sector33": "情報・通信業"
   },
   {
     "code": "504A.T",
@@ -10225,8 +10225,8 @@
   },
   {
     "code": "50765.T",
-    "name": "INFRONEER HLDGS INC NPV PRF STO",
-    "market": "",
+    "name": "インフロニア・ホールディングス（株）第1回社債型種類株式",
+    "market": "プライム（内国株式）",
     "sector33": ""
   },
   {
@@ -10243,8 +10243,8 @@
   },
   {
     "code": "509A.T",
-    "name": "Green Light Renewable Energy Infrastructure Fund",
-    "market": "",
+    "name": "グリーンライト・再エネインフラ投資法人",
+    "market": "東証",
     "sector33": ""
   },
   {
@@ -10843,9 +10843,9 @@
   },
   {
     "code": "5401@F.T",
-    "name": "NIPPON STEEL CORPORATION",
-    "market": "",
-    "sector33": ""
+    "name": "日本製鉄",
+    "market": "福証",
+    "sector33": "鉄鋼"
   },
   {
     "code": "5406.T",
@@ -11125,9 +11125,9 @@
   },
   {
     "code": "5579@S.T",
-    "name": "GSI CO LTD",
-    "market": "",
-    "sector33": ""
+    "name": "5579@S.T",
+    "market": "札証",
+    "sector33": "情報・通信業"
   },
   {
     "code": "5580.T",
@@ -11437,9 +11437,9 @@
   },
   {
     "code": "5802@F.T",
-    "name": "SUMITOMO ELECTRIC INDUSTRIES",
-    "market": "",
-    "sector33": ""
+    "name": "住友電気工業",
+    "market": "福証",
+    "sector33": "非鉄金属"
   },
   {
     "code": "5803.T",
@@ -11845,9 +11845,9 @@
   },
   {
     "code": "5953@F.T",
-    "name": "SHOWA MANUFACTURING CO",
-    "market": "",
-    "sector33": ""
+    "name": "昭和鉄工",
+    "market": "福証",
+    "sector33": "金属製品"
   },
   {
     "code": "5955.T",
@@ -11947,13 +11947,13 @@
   },
   {
     "code": "597A.T",
-    "name": "andUS.inc",
+    "name": "597A.T",
     "market": "",
     "sector33": ""
   },
   {
     "code": "597A@F.T",
-    "name": "ANDUS INC",
+    "name": "597A@F.T",
     "market": "",
     "sector33": ""
   },
@@ -12055,13 +12055,13 @@
   },
   {
     "code": "599A.T",
-    "name": "GENKINAKAIGO CO LTD",
+    "name": "599A.T",
     "market": "",
     "sector33": ""
   },
   {
     "code": "599A@S.T",
-    "name": "GENKINAKAIGO CO LTD",
+    "name": "599A@S.T",
     "market": "",
     "sector33": ""
   },
@@ -12301,9 +12301,9 @@
   },
   {
     "code": "6076@F.T",
-    "name": "AMAZE CO LTD",
-    "market": "",
-    "sector33": ""
+    "name": "6076@F.T",
+    "market": "福証",
+    "sector33": "サービス業"
   },
   {
     "code": "6078.T",
@@ -12523,9 +12523,9 @@
   },
   {
     "code": "6147@F.T",
-    "name": "YAMAZAKI CO LTD",
-    "market": "",
-    "sector33": ""
+    "name": "6147@F.T",
+    "market": "福証",
+    "sector33": "機械"
   },
   {
     "code": "6149.T",
@@ -13795,9 +13795,9 @@
   },
   {
     "code": "6506@F.T",
-    "name": "YASKAWA ELECTRIC CORP",
-    "market": "",
-    "sector33": ""
+    "name": "6506@F.T",
+    "market": "福証",
+    "sector33": "電気機器"
   },
   {
     "code": "6507.T",
@@ -16693,9 +16693,9 @@
   },
   {
     "code": "7441@F.T",
-    "name": "MISUMI CO LTD",
-    "market": "",
-    "sector33": ""
+    "name": "7441@F.T",
+    "market": "福証",
+    "sector33": "卸売業"
   },
   {
     "code": "7442.T",
@@ -17035,8 +17035,8 @@
   },
   {
     "code": "75505.T",
-    "name": "ZENSHO HOLDINGS CO LTD NPV PRF ",
-    "market": "",
+    "name": "（株）ゼンショーホールディングス第1回社債型種類株式",
+    "market": "プライム（内国株式）",
     "sector33": ""
   },
   {
@@ -17953,9 +17953,9 @@
   },
   {
     "code": "7851@F.T",
-    "name": "KAWASE COMPUTER SUPPLIES CO",
-    "market": "",
-    "sector33": ""
+    "name": "カワセコンピュータサプライ",
+    "market": "福証",
+    "sector33": "その他製品"
   },
   {
     "code": "7856.T",
@@ -18091,9 +18091,9 @@
   },
   {
     "code": "7894@F.T",
-    "name": "MARUTO SANGYO CO",
-    "market": "",
-    "sector33": ""
+    "name": "丸東産業",
+    "market": "福証",
+    "sector33": "化学"
   },
   {
     "code": "7896.T",
@@ -18409,9 +18409,9 @@
   },
   {
     "code": "7985@F.T",
-    "name": "NEPON INC",
-    "market": "",
-    "sector33": ""
+    "name": "ネポン",
+    "market": "福証",
+    "sector33": "金属製品"
   },
   {
     "code": "7986.T",
@@ -19549,9 +19549,9 @@
   },
   {
     "code": "8398@F.T",
-    "name": "CHIKUHO BANK",
-    "market": "",
-    "sector33": ""
+    "name": "8398@F.T",
+    "market": "福証",
+    "sector33": "銀行業"
   },
   {
     "code": "8399.T",
@@ -19585,8 +19585,8 @@
   },
   {
     "code": "8421.T",
-    "name": "Shinkin Central Bank",
-    "market": "",
+    "name": "信金中央金庫",
+    "market": "東証",
     "sector33": ""
   },
   {
@@ -19681,9 +19681,9 @@
   },
   {
     "code": "8554@F.T",
-    "name": "MINAMI-NIPPON BANK",
-    "market": "",
-    "sector33": ""
+    "name": "8554@F.T",
+    "market": "福証",
+    "sector33": "銀行業"
   },
   {
     "code": "8558.T",
@@ -19693,15 +19693,15 @@
   },
   {
     "code": "8559@F.T",
-    "name": "HOWA BANK",
-    "market": "",
-    "sector33": ""
+    "name": "8559@F.T",
+    "market": "福証",
+    "sector33": "銀行業"
   },
   {
     "code": "8560@F.T",
-    "name": "MIYAZAKI TAIYO BANK",
-    "market": "",
-    "sector33": ""
+    "name": "8560@F.T",
+    "market": "福証",
+    "sector33": "銀行業"
   },
   {
     "code": "8562.T",
@@ -19759,9 +19759,9 @@
   },
   {
     "code": "8594@S.T",
-    "name": "NAKAMICHI LEASING CO",
-    "market": "",
-    "sector33": ""
+    "name": "中道リース",
+    "market": "札証",
+    "sector33": "その他金融業"
   },
   {
     "code": "8595.T",
@@ -20341,93 +20341,93 @@
   },
   {
     "code": "8961.T",
-    "name": "MORI TRUST REIT, Inc.",
-    "market": "",
-    "sector33": ""
+    "name": "森トラストリート投資法人",
+    "market": "東証",
+    "sector33": "REIT"
   },
   {
     "code": "8963.T",
-    "name": "Invincible Investment Corporation",
-    "market": "",
-    "sector33": ""
+    "name": "インヴィンシブル投資法人",
+    "market": "東証",
+    "sector33": "REIT"
   },
   {
     "code": "8964.T",
-    "name": "Mitsui Fudosan Retail Fund Investment Corporation",
-    "market": "",
-    "sector33": ""
+    "name": "三井不動産商業ファンド投資法人",
+    "market": "東証",
+    "sector33": "REIT"
   },
   {
     "code": "8966.T",
-    "name": "Heiwa Real Estate REIT, Inc.",
-    "market": "",
-    "sector33": ""
+    "name": "平和不動産リート投資法人",
+    "market": "東証",
+    "sector33": "REIT"
   },
   {
     "code": "8967.T",
-    "name": "Japan Logistics Fund, Inc.",
-    "market": "",
-    "sector33": ""
+    "name": "日本ロジスティクスファンド投資法人",
+    "market": "東証",
+    "sector33": "REIT"
   },
   {
     "code": "8968.T",
-    "name": "Fukuoka REIT Corporation",
-    "market": "",
-    "sector33": ""
+    "name": "福岡リート投資法人",
+    "market": "東証",
+    "sector33": "REIT"
   },
   {
     "code": "8972.T",
-    "name": "KDX Realty Investment Corporation",
-    "market": "",
-    "sector33": ""
+    "name": "KDX不動産投資法人",
+    "market": "東証",
+    "sector33": "REIT"
   },
   {
     "code": "8975.T",
-    "name": "Ichigo Office REIT Investment Corporation",
-    "market": "",
-    "sector33": ""
+    "name": "いちごオフィスリート投資法人",
+    "market": "東証",
+    "sector33": "REIT"
   },
   {
     "code": "8976.T",
-    "name": "Daiwa Office Investment Corporation",
-    "market": "",
-    "sector33": ""
+    "name": "大和証券オフィス投資法人",
+    "market": "東証",
+    "sector33": "REIT"
   },
   {
     "code": "8977.T",
-    "name": "Hankyu Hanshin REIT, Inc.",
-    "market": "",
-    "sector33": ""
+    "name": "阪急阪神リート投資法人",
+    "market": "東証",
+    "sector33": "REIT"
   },
   {
     "code": "8979.T",
-    "name": "Starts Proceed Investment Corporation",
-    "market": "",
-    "sector33": ""
+    "name": "スターツプロシード投資法人",
+    "market": "東証",
+    "sector33": "REIT"
   },
   {
     "code": "8984.T",
-    "name": "Daiwa House REIT Investment Corporation",
-    "market": "",
-    "sector33": ""
+    "name": "大和ハウスリート投資法人",
+    "market": "東証",
+    "sector33": "REIT"
   },
   {
     "code": "8985.T",
-    "name": "Japan Hotel REIT Investment Corporation",
-    "market": "",
-    "sector33": ""
+    "name": "ジャパン・ホテル・リート投資法人",
+    "market": "東証",
+    "sector33": "REIT"
   },
   {
     "code": "8986.T",
-    "name": "Daiwa Securities Living Investment Corporation",
-    "market": "",
-    "sector33": ""
+    "name": "大和証券リビング投資法人",
+    "market": "東証",
+    "sector33": "REIT"
   },
   {
     "code": "8987.T",
-    "name": "Japan Excellent, Inc.",
-    "market": "",
-    "sector33": ""
+    "name": "ジャパンエクセレント投資法人",
+    "market": "東証",
+    "sector33": "REIT"
   },
   {
     "code": "8995.T",
@@ -20551,9 +20551,9 @@
   },
   {
     "code": "9027@S.T",
-    "name": "LOGINET JAPAN CO LTD",
-    "market": "",
-    "sector33": ""
+    "name": "9027@S.T",
+    "market": "札証",
+    "sector33": "陸運業"
   },
   {
     "code": "9028.T",
@@ -20587,9 +20587,9 @@
   },
   {
     "code": "9035@F.T",
-    "name": "DAIICHI KOUTSU SANGYO CO LTD",
-    "market": "",
-    "sector33": ""
+    "name": "第一交通産業",
+    "market": "福証",
+    "sector33": "陸運業"
   },
   {
     "code": "9036.T",
@@ -20761,9 +20761,9 @@
   },
   {
     "code": "9085@S.T",
-    "name": "HOKKAIDO CHUO BUS CO",
-    "market": "",
-    "sector33": ""
+    "name": "北海道中央バス",
+    "market": "札証",
+    "sector33": "陸運業"
   },
   {
     "code": "9087.T",
@@ -20923,8 +20923,8 @@
   },
   {
     "code": "92015.T",
-    "name": "Japan Airlines Co., Ltd.",
-    "market": "",
+    "name": "日本航空（株）第１回社債型種類株式",
+    "market": "プライム（内国株式）",
     "sector33": ""
   },
   {
@@ -20935,8 +20935,8 @@
   },
   {
     "code": "92025.T",
-    "name": "ANA HOLDINGS INC NPV PRF STOCK ",
-    "market": "",
+    "name": "ＡＮＡホールディングス（株）第１回社債型種類株式",
+    "market": "プライム（内国株式）",
     "sector33": ""
   },
   {
@@ -21157,9 +21157,9 @@
   },
   {
     "code": "9257.T",
-    "name": "YCP Holdings (Global) Limited",
-    "market": "",
-    "sector33": ""
+    "name": "ＹＣＰホールディングス（グローバル）",
+    "market": "グロース（内国株式）",
+    "sector33": "サービス業"
   },
   {
     "code": "9258.T",
@@ -21247,26 +21247,26 @@
   },
   {
     "code": "9282.T",
-    "name": "Ichigo Green Infrastructure Investment Corporation",
-    "market": "",
+    "name": "いちごグリーンインフラ投資法人",
+    "market": "東証",
     "sector33": ""
   },
   {
     "code": "9284.T",
-    "name": "Canadian Solar Infrastructure Fund, Inc.",
-    "market": "",
+    "name": "カナディアン・ソーラー・インフラ投資法人",
+    "market": "東証",
     "sector33": ""
   },
   {
     "code": "9285.T",
-    "name": "Tokyo Infrastructure Energy Investment Corporation - Infrastructure Fund",
-    "market": "",
+    "name": "東京インフラ・エネルギー投資法人",
+    "market": "東証",
     "sector33": ""
   },
   {
     "code": "9286.T",
-    "name": "Enex Infrastructure Investment Corporation - Infrastructure Fund",
-    "market": "",
+    "name": "エネクス・インフラ投資法人",
+    "market": "東証",
     "sector33": ""
   },
   {
@@ -21571,15 +21571,15 @@
   },
   {
     "code": "9388@F.T",
-    "name": "PAPANETS CO LTD",
-    "market": "",
-    "sector33": ""
+    "name": "9388@F.T",
+    "market": "福岡Q",
+    "sector33": "サービス業"
   },
   {
     "code": "9399.T",
-    "name": "Beat Holdings Limited",
-    "market": "",
-    "sector33": ""
+    "name": "ビート・ホールディングス・リミテッド",
+    "market": "スタンダード（内国株式）",
+    "sector33": "情報・通信業"
   },
   {
     "code": "9401.T",
@@ -21601,9 +21601,9 @@
   },
   {
     "code": "9407@F.T",
-    "name": "RKB MAINICHI HOLDINGS CORP",
-    "market": "",
-    "sector33": ""
+    "name": "9407@F.T",
+    "market": "福証",
+    "sector33": "情報・通信業"
   },
   {
     "code": "9408.T",
@@ -21709,14 +21709,14 @@
   },
   {
     "code": "94345.T",
-    "name": "SOFTBANK CORP. NPV PRF STOCK SE",
-    "market": "",
+    "name": "ソフトバンク(株)第1回社債型種類株式",
+    "market": "プライム（内国株式）",
     "sector33": ""
   },
   {
     "code": "94346.T",
-    "name": "SOFTBANK CORP. NPV PRF STOCK SE",
-    "market": "",
+    "name": "ソフトバンク(株)第2回社債型種類株式",
+    "market": "プライム（内国株式）",
     "sector33": ""
   },
   {
@@ -22867,9 +22867,9 @@
   },
   {
     "code": "9942@F.T",
-    "name": "JOYFULL CO LTD",
-    "market": "",
-    "sector33": ""
+    "name": "9942@F.T",
+    "market": "福証",
+    "sector33": "小売業"
   },
   {
     "code": "9946.T",
