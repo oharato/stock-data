@@ -40,52 +40,61 @@ function mapSector33(sector: string): string {
 
 // Fetch name, market, and sector from Japanese Yahoo Finance detail page
 async function fetchYahooJpTickerDetail(code: string): Promise<{ name: string; market: string; sector33: string }> {
-  const url = `https://finance.yahoo.co.jp/quote/${code}`;
-  const res = await fetch(url, {
-    headers: {
-      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+  // Normalize local exchange codes: 1771@F.T -> 1771.T
+  const cleanCodeForUrl = code.replace(/@\w+/, '');
+  const url = `https://finance.yahoo.co.jp/quote/${cleanCodeForUrl}`;
+  
+  try {
+    const res = await fetch(url, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+      }
+    });
+    if (!res.ok) {
+      console.warn(`Failed to fetch Yahoo JP page for ${code} (status: ${res.status}), using fallback values.`);
+      return { name: code, market: '', sector33: '' };
     }
-  });
-  if (!res.ok) {
-    throw new Error(`Failed to fetch Yahoo JP page for ${code}: ${res.status}`);
-  }
-  const html = await res.text();
+    const html = await res.text();
 
-  let name = '';
-  let market = '';
-  let sector = '';
+    let name = '';
+    let market = '';
+    let sector = '';
 
-  const cleanCode = code.replace('.T', '');
+    const cleanCode = cleanCodeForUrl.replace('.T', '');
 
-  // Try regex for name (considering escape backslashes in JSON-like strings)
-  const nameRegex = new RegExp(`\\\\?"name\\\\?"\\s*:\\s*\\\\?"([^"\\\\]+)\\\\?"\\s*,\\s*\\\\?"code\\\\?"\\s*:\\s*\\\\?"${cleanCode}\\\\?"`);
-  const nameMatch = html.match(nameRegex);
-  if (nameMatch) {
-    name = nameMatch[1];
-  } else {
-    const titleMatch = html.match(/<title>([^【［\(]+)/);
-    if (titleMatch) {
-      name = titleMatch[1].trim();
+    // Try regex for name (considering escape backslashes in JSON-like strings)
+    const nameRegex = new RegExp(`\\\\?"name\\\\?"\\s*:\\s*\\\\?"([^"\\\\]+)\\\\?"\\s*,\\s*\\\\?"code\\\\?"\\s*:\\s*\\\\?"${cleanCode}\\\\?"`);
+    const nameMatch = html.match(nameRegex);
+    if (nameMatch) {
+      name = nameMatch[1];
+    } else {
+      const titleMatch = html.match(/<title>([^【［\(]+)/);
+      if (titleMatch) {
+        name = titleMatch[1].trim();
+      }
     }
-  }
 
-  // Try regex for market
-  const marketRegex = /\\?"label\\?"\s*:\s*\\?"([^"\\]+)\\?"/;
-  const marketMatch = html.match(marketRegex);
-  if (marketMatch) {
-    market = mapMarket(marketMatch[1]);
-  }
+    // Try regex for market
+    const marketRegex = /\\?"label\\?"\s*:\s*\\?"([^"\\]+)\\?"/;
+    const marketMatch = html.match(marketRegex);
+    if (marketMatch) {
+      market = mapMarket(marketMatch[1]);
+    }
 
-  // Try regex for industry/sector
-  const industryRegex = /\\?"industry\\?"\s*:\s*\{\s*\\?"industryName\\?"\s*:\s*\\?"([^"\\]+)\\?"/;
-  const industryRegex2 = /\\?"industryName\\?"\s*:\s*\\?"([^"\\]+)\\?"/;
-  const industryRegex3 = /\\?"industry\\?"\s*:\s*\{\s*\\?"name\\?"\s*:\s*\\?"([^"\\]+)\\?"/;
-  const indMatch = html.match(industryRegex) || html.match(industryRegex2) || html.match(industryRegex3);
-  if (indMatch) {
-    sector = mapSector33(indMatch[1]);
-  }
+    // Try regex for industry/sector
+    const industryRegex = /\\?"industry\\?"\s*:\s*\{\s*\\?"industryName\\?"\s*:\s*\\?"([^"\\]+)\\?"/;
+    const industryRegex2 = /\\?"industryName\\?"\s*:\s*\\?"([^"\\]+)\\?"/;
+    const industryRegex3 = /\\?"industry\\?"\s*:\s*\{\s*\\?"name\\?"\s*:\s*\\?"([^"\\]+)\\?"/;
+    const indMatch = html.match(industryRegex) || html.match(industryRegex2) || html.match(industryRegex3);
+    if (indMatch) {
+      sector = mapSector33(indMatch[1]);
+    }
 
-  return { name: name || code, market, sector33: sector };
+    return { name: name || code, market, sector33: sector };
+  } catch (err) {
+    console.warn(`Network error fetching Yahoo JP page for ${code}: ${err}, using fallback values.`);
+    return { name: code, market: '', sector33: '' };
+  }
 }
 
 export async function fetchAndSaveTickers(outputPath = 'data/tickers.json'): Promise<Ticker[]> {
