@@ -29,6 +29,11 @@ app.use('/charts/*', serveStatic({
   root: './data' // /charts/daily/7203.T.webp -> ./data/charts/daily/7203.T.webp
 }));
 
+// Serve public assets statically (CSS, JS, etc.)
+app.use('/public/*', serveStatic({
+  root: '.' // /public/viewer.css -> ./public/viewer.css
+}));
+
 const DB_PATH = resolve('stock.duckdb');
 const TEMP_DB_PATH = resolve('stock.duckdb.tmp-viewer');
 
