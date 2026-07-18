@@ -9,11 +9,9 @@
     "generate-batch": "tsx src/chart-generator/batch.ts",
     "fetch-market-caps": "tsx src/data-fetcher/fetch-market-caps.ts",
     "all": "npm run fetch-tickers && npm run fetch && npm run build-duckdb && npm run fetch-market-caps && npm run generate-batch",
-    "dev": "vite",
-    "start": "tsx src/chart-viewer/server.tsx",
-    "viewer:start": "bash scripts/start-viewer.sh",
-    "viewer:stop": "bash scripts/stop-viewer.sh",
-    "viewer:status": "bash scripts/status-viewer.sh",
+    "build:static": "tsx src/static-builder/build.ts",
+    "all:static": "npm run all && npm run build:static",
+    "preview": "npx -y http-server dist",
     "test": "vitest run"
   },
   "dependencies": {
