@@ -40,8 +40,14 @@ function mapSector33(sector: string): string {
 
 // Fetch name, market, and sector from Japanese Yahoo Finance detail page
 async function fetchYahooJpTickerDetail(code: string): Promise<{ name: string; market: string; sector33: string }> {
-  // Normalize local exchange codes: 1771@F.T -> 1771.T
-  const cleanCodeForUrl = code.replace(/@\w+/, '');
+  // Normalize regional exchange codes: 1771@F.T -> 1771.F, 1449@S.T -> 1449.S
+  let cleanCodeForUrl = code;
+  const regionalMatch = code.match(/^(\d{4})@([SFN])\.T$/);
+  if (regionalMatch) {
+    cleanCodeForUrl = `${regionalMatch[1]}.${regionalMatch[2]}`;
+  } else {
+    cleanCodeForUrl = code.replace(/@\w+/, '');
+  }
   const url = `https://finance.yahoo.co.jp/quote/${cleanCodeForUrl}`;
   
   try {
