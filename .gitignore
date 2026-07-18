@@ -1,5 +1,6 @@
 node_modules/
 data/
+!data/tickers.json
 stock.duckdb
 errors.json
 tickers.json
