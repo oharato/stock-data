@@ -40,9 +40,9 @@ function mapSector33(sector: string): string {
 
 // Fetch name, market, and sector from Japanese Yahoo Finance detail page
 async function fetchYahooJpTickerDetail(code: string): Promise<{ name: string; market: string; sector33: string }> {
-  // Normalize regional exchange codes: 1771@F.T -> 1771.F, 1449@S.T -> 1449.S
+  // Normalize regional exchange codes: 1771@F.T -> 1771.F, 231A@F.T -> 231A.F, 1449@S.T -> 1449.S
   let cleanCodeForUrl = code;
-  const regionalMatch = code.match(/^(\d{4})@([SFN])\.T$/);
+  const regionalMatch = code.match(/^([^@]+)@([SFN])\.T$/);
   if (regionalMatch) {
     cleanCodeForUrl = `${regionalMatch[1]}.${regionalMatch[2]}`;
   } else {
