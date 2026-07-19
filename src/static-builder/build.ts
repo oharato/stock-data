@@ -1,7 +1,6 @@
 import { promises as fs, existsSync, mkdirSync } from 'fs';
 import { join, resolve } from 'path';
 import { DuckDBInstance } from '@duckdb/node-api';
-import { Viewer } from '../chart-viewer/views/Viewer.js';
 
 // Helper: Recursively copy a directory
 async function copyDir(src: string, dest: string) {
@@ -99,18 +98,25 @@ async function main() {
   const dataJsonDest = join(distPublicDir, 'data.json');
   await exportDataJson(dbPath, dataJsonDest);
 
-  // 2. Render static index.html from Viewer component
-  console.log('Rendering Viewer component to static index.html...');
-  // Resolving JSX directly in Hono JSX setup returns an HtmlEscapedString which resolves to string
-  const renderedHtml = '<!DOCTYPE html>\n' + (Viewer() as any).toString();
+  // 2. Copy static index.html template
+  console.log('Copying static index.html...');
   const indexHtmlDest = join(distDir, 'index.html');
-  await fs.writeFile(indexHtmlDest, renderedHtml, 'utf-8');
-  console.log(`Rendered index.html saved to ${indexHtmlDest}`);
+  await fs.copyFile(resolve('public/index.html'), indexHtmlDest);
+  console.log(`index.html copied to ${indexHtmlDest}`);
 
   // 3. Copy static CSS and JS assets
   console.log('Copying public assets (CSS/JS)...');
   await fs.copyFile(resolve('public/viewer.css'), join(distPublicDir, 'viewer.css'));
   await fs.copyFile(resolve('public/viewer.js'), join(distPublicDir, 'viewer.js'));
+  
+  // Copy Alpine.js package file to local assets folder
+  const alpineSource = resolve('node_modules/alpinejs/dist/cdn.min.js');
+  if (existsSync(alpineSource)) {
+    await fs.copyFile(alpineSource, join(distPublicDir, 'alpine.js'));
+  } else {
+    throw new Error('Local alpinejs package file not found. Run npm install first.');
+  }
+  
   console.log('Assets copied successfully.');
 
   // 4. Copy generated chart images

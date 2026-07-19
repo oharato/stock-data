@@ -80,7 +80,7 @@ async function main() {
     }
   }
 
-  // Copy database file to avoid lock conflict with Hono server or fetch tasks
+  // Copy database file to avoid lock conflict with other active readers or fetch tasks
   const originalDb = resolve('stock.duckdb');
   const tempDb = resolve('stock.duckdb.tmp-batch');
   

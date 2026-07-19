@@ -1,3 +1,71 @@
+:root {
+  --bg-base: #080c14;
+  --bg-surface: #0f172a;
+  --bg-card: #1e293b;
+  --border: #334155;
+  --text-primary: #f8fafc;
+  --text-secondary: #94a3b8;
+  --accent: #38bdf8;
+  --accent-glow: rgba(56, 189, 248, 0.15);
+  --success: #f43f5e; /* Candle Up */
+  --danger: #06b6d4;  /* Candle Down */
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background-color: var(--bg-base);
+  color: var(--text-primary);
+  font-family: 'Outfit', 'Noto Sans JP', sans-serif;
+  padding: 24px;
+  min-height: 100vh;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+header {
+  max-width: 1800px;
+  margin: 0 auto 24px auto;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 20px;
+}
+
+@media (min-width: 768px) {
+  header {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+  }
+}
+
+.brand-title {
+  font-size: 26px;
+  font-weight: 800;
+  background: linear-gradient(135deg, #38bdf8 0%, #818cf8 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  letter-spacing: -0.5px;
+}
+
+.brand-subtitle {
+  font-size: 13px;
+  color: var(--text-secondary);
+  font-weight: 500;
+  margin-top: 4px;
+}
+
+main {
+  max-width: 1800px;
+  margin: 0 auto;
+}
+
 .app-container {
   max-width: 100%;
 }
@@ -531,7 +599,7 @@
 
 /* Lightbox / Modal */
 .lightbox {
-  display: none;
+  display: flex;
   position: fixed;
   z-index: 1000;
   left: 0;
@@ -665,7 +733,7 @@ body {
 
 /* Detailed Information Modal Overlay */
 .detail-modal-overlay {
-  display: none;
+  display: flex;
   position: fixed;
   z-index: 1010;
   left: 0;
@@ -859,4 +927,84 @@ body {
 
 .detail-action-link-btn:hover {
   opacity: 0.9;
+}
+
+/* Ticker Card layout */
+.ticker-card {
+  background-color: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 24px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+  transition: transform 0.2s ease, border-color 0.2s ease;
+}
+
+.ticker-card:hover {
+  transform: translateY(-2px);
+  border-color: var(--accent);
+}
+
+/* Chart panorama layout */
+.chart-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+@media (min-width: 992px) {
+  .chart-grid {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+  }
+}
+
+.chart-container {
+  position: relative;
+  border-radius: 8px;
+  overflow: hidden;
+  background-color: var(--bg-base);
+  border: 1px solid var(--border);
+  aspect-ratio: 16 / 10;
+  cursor: pointer;
+}
+
+.chart-container img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  transition: transform 0.3s ease;
+}
+
+.chart-container:hover img {
+  transform: scale(1.02);
+}
+
+/* Period Badges */
+.chart-period-badge {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: #fff;
+  z-index: 2;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+}
+
+.chart-period-badge.monthly {
+  background-color: #3b82f6; /* Blue */
+}
+
+.chart-period-badge.weekly {
+  background-color: #10b981; /* Green */
+}
+
+.chart-period-badge.daily {
+  background-color: #f59e0b; /* Yellow/Orange */
 }

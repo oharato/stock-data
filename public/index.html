@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>株価チャート・マルチビューア</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="true" />
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Noto+Sans+JP:wght@300;400;500;700&display=swap" rel="stylesheet" />
+    <!-- Custom layouts style from consolidated viewer.css -->
+  </head>
+  <body>
+    <!-- Root Alpine Component definition -->
+    <div x-data="tickerApp({ initialSearch: '', initialSector: '', initialSort: 'code_asc' })" class="app-root-wrapper">
+
+      <!-- Drawer Overlay -->
+      <div class="drawer-overlay" x-show="isDrawerOpen" @click="isDrawerOpen = false" x-transition style="display: none;"></div>
+
+      <!-- Hamburger Trigger Button -->
+      <button class="menu-trigger" :class="{ 'active': isDrawerOpen }" @click="isDrawerOpen = !isDrawerOpen" title="フィルターを開く">
+        <span></span>
+        <span></span>
+        <span></span>
+      </button>
+
+      <!-- Slide-out Drawer -->
+      <aside class="filter-drawer" :class="{ 'open': isDrawerOpen }">
+        <div class="drawer-header">
+          <h2>📊 フィルター & ソート</h2>
+          <span class="close-drawer-btn" @click="isDrawerOpen = false">&times;</span>
+        </div>
+        <form @submit.prevent="applyFiltersAndSort(); isDrawerOpen = false;" class="filter-form">
+          <div class="form-grid-vertical">
+            <!-- Search -->
+            <div class="form-group search-group">
+              <label>コード・銘柄名検索</label>
+              <div class="search-input-wrapper">
+                <input
+                  type="text"
+                  x-model="searchQuery"
+                  @input="applyFiltersAndSort()"
+                  placeholder="例: トヨタ、7203"
+                />
+              </div>
+            </div>
+
+            <!-- Sector -->
+            <div class="form-group">
+              <label>33業種絞り込み</label>
+              <select x-model="selectedSector" @change="applyFiltersAndSort()">
+                <option value="">全業種を表示</option>
+                <template x-for="s in sectors" :key="s">
+                  <option :value="s" x-text="s"></option>
+                </template>
+              </select>
+            </div>
+
+            <!-- Sort -->
+            <div class="form-group">
+              <label>並べ替え順</label>
+              <select x-model="sortKey" @change="applyFiltersAndSort()">
+                <option value="code_asc">銘柄コード順 (昇順)</option>
+                <option value="market_cap_desc">時価総額順 (大きい順)</option>
+                <option value="market_cap_asc">時価総額順 (小さい順)</option>
+                <option value="per_asc">PER安順 (割安)</option>
+                <option value="per_desc">PER高順</option>
+                <option value="pbr_asc">PBR安順 (1倍割れ等)</option>
+                <option value="pbr_desc">PBR高順</option>
+                <option value="div_yield_desc">配当利回り順 (高い順)</option>
+                <option value="ipo_date_desc">上場日順 (新しい順)</option>
+                <option value="ipo_date_asc">上場日順 (古い順)</option>
+              </select>
+            </div>
+            
+            <button type="submit" class="apply-filter-btn">条件を適用</button>
+          </div>
+        </form>
+      </aside>
+
+      <div class="app-container">
+        <header>
+          <div>
+            <h1 class="brand-title">AGY Stock Chart Viewer</h1>
+            <div class="brand-subtitle">月足・週足・日足を並列でパノラマビュー表示</div>
+            
+            <!-- Active Filters Display -->
+            <div class="active-filters-bar">
+              <span class="active-filter-label">現在の条件:</span>
+              <span class="filter-badge" x-text="searchQuery ? '🔍 ' + searchQuery : '🔍 すべて'"></span>
+              <span class="filter-badge" x-text="selectedSector ? '📁 ' + selectedSector : '📁 業種: すべて'"></span>
+              <span class="filter-badge accent-badge" x-text="getSortLabel()"></span>
+            </div>
+          </div>
+          <div class="system-stats">
+            <span class="stat-badge">DB Status: Static Data</span>
+          </div>
+        </header>
+
+        <!-- Ticker List (Hydrated dynamically by Alpine x-for) -->
+        <main class="ticker-list">
+          <!-- Loading placeholder when initializing -->
+          <div class="loading-indicator" x-show="isLoading" style="display: none;">
+            <div class="spinner"></div>
+            <span>株価データを読み込み中...</span>
+          </div>
+
+          <!-- Empty state -->
+          <div class="empty-state" x-show="!isLoading && displayedTickers.length === 0" style="display: none;">
+            <div class="empty-icon">📂</div>
+            <h3>一致する銘柄が見つかりませんでした</h3>
+            <p>検索条件やフィルターを変更してみてください。</p>
+          </div>
+
+          <template x-for="t in displayedTickers" :key="t.code">
+            <div class="ticker-card" :id="'ticker-' + t.code">
+              <div class="ticker-card-info">
+                <div class="left-info">
+                  <span class="ticker-code-badge" x-text="t.code"></span>
+                  <h2 class="ticker-name-text" @click="openDetail(t)" x-text="t.name"></h2>
+                  <span class="ticker-market-text" x-text="t.market"></span>
+                </div>
+                <div class="right-info">
+                  <span class="ticker-sector-text" x-text="t.sector33"></span>
+                  <span class="ticker-market-cap" x-text="formatMarketCap(t.market_cap)"></span>
+                  <div class="fundamental-summary-badges">
+                    <span class="fundamental-summary-badge per-badge" x-show="t.per !== null && t.per !== undefined" x-text="'PER ' + Number(t.per).toFixed(1) + '倍'"></span>
+                    <span class="fundamental-summary-badge pbr-badge" x-show="t.pbr !== null && t.pbr !== undefined" x-text="'PBR ' + Number(t.pbr).toFixed(2) + '倍'"></span>
+                    <span class="fundamental-summary-badge yield-badge" x-show="t.dividend_yield !== null && t.dividend_yield > 0" x-text="'利回り ' + (Number(t.dividend_yield)*100).toFixed(2) + '%'"></span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Chart Grid -->
+              <div class="chart-grid">
+                <div class="chart-container" @click="openLightbox('./charts/monthly/' + t.code + '.webp', t.code + ' 月足')">
+                  <img :src="'./charts/monthly/' + t.code + '.webp'" alt="月足" loading="lazy" />
+                  <span class="chart-period-badge monthly">月足</span>
+                </div>
+                <div class="chart-container" @click="openLightbox('./charts/weekly/' + t.code + '.webp', t.code + ' 週足')">
+                  <img :src="'./charts/weekly/' + t.code + '.webp'" alt="週足" loading="lazy" />
+                  <span class="chart-period-badge weekly">週足</span>
+                </div>
+                <div class="chart-container" @click="openLightbox('./charts/daily/' + t.code + '.webp', t.code + ' 日足')">
+                  <img :src="'./charts/daily/' + t.code + '.webp'" alt="日足" loading="lazy" />
+                  <span class="chart-period-badge daily">日足</span>
+                </div>
+              </div>
+            </div>
+          </template>
+        </main>
+
+        <!-- Loading Indicator for Infinite Scroll -->
+        <div class="loading-indicator" x-show="hasMore" style="display: none;">
+          <div class="spinner"></div>
+          <span>さらに読み込み中...</span>
+        </div>
+      </div>
+
+      <!-- Lightbox / Modal -->
+      <div class="lightbox" x-show="isLightboxOpen" @click="closeLightbox()" x-transition style="display: none;">
+        <span class="lightbox-close" @click="closeLightbox()">&times;</span>
+        <div class="lightbox-content" @click.stopPropagation()>
+          <img :src="lightboxImg" alt="拡大画像" />
+          <div class="lightbox-caption" x-text="lightboxCaption"></div>
+        </div>
+      </div>
+
+      <!-- Ticker Detail Info Modal -->
+      <div class="detail-modal-overlay" x-show="isDetailOpen" @click="closeDetail()" x-transition style="display: none;">
+        <div class="detail-modal-card" @click.stopPropagation() x-show="selectedTicker">
+          <template x-if="selectedTicker">
+            <div>
+              <span class="detail-modal-close-btn" @click="closeDetail()">&times;</span>
+              <div class="detail-modal-header">
+                <h2>
+                  <span class="ticker-code-badge" x-text="selectedTicker.code"></span>
+                  <span x-text="selectedTicker.name"></span>
+                </h2>
+                <div class="ticker-market-text" x-text="selectedTicker.market || '---'"></div>
+                <div class="detail-modal-price-row">
+                  <span class="detail-modal-price" x-text="selectedTicker.current_price !== null ? Number(selectedTicker.current_price).toLocaleString() + ' 円' : '---'"></span>
+                  <span class="detail-modal-change" 
+                        :class="selectedTicker.change_percent >= 0 ? 'change-up' : 'change-down'"
+                        x-show="selectedTicker.change_percent !== null"
+                        x-text="'前日比: ' + formatPriceDiff(selectedTicker) + '(' + (selectedTicker.change_percent > 0 ? '+' : '') + Number(selectedTicker.change_percent).toFixed(2) + '%)'"></span>
+                </div>
+              </div>
+              <div class="detail-modal-body">
+                <div class="detail-modal-grid-3col">
+                  <!-- Box 1: Trade Data -->
+                  <div class="detail-modal-sub-card">
+                    <div class="detail-modal-sub-card-title">株価・取引データ</div>
+                    <div class="detail-modal-data-row">
+                      <span class="detail-modal-data-label">始値</span>
+                      <span class="detail-modal-data-value" x-text="selectedTicker.open_price !== null ? Number(selectedTicker.open_price).toLocaleString() + ' 円' : '---'"></span>
+                    </div>
+                    <div class="detail-modal-data-row">
+                      <span class="detail-modal-data-label">前日終値</span>
+                      <span class="detail-modal-data-value" x-text="selectedTicker.prev_close !== null ? Number(selectedTicker.prev_close).toLocaleString() + ' 円' : '---'"></span>
+                    </div>
+                    <div class="detail-modal-data-row">
+                      <span class="detail-modal-data-label">本日高値</span>
+                      <span class="detail-modal-data-value" x-text="selectedTicker.high_price !== null ? Number(selectedTicker.high_price).toLocaleString() + ' 円' : '---'"></span>
+                    </div>
+                    <div class="detail-modal-data-row">
+                      <span class="detail-modal-data-label">本日安値</span>
+                      <span class="detail-modal-data-value" x-text="selectedTicker.low_price !== null ? Number(selectedTicker.low_price).toLocaleString() + ' 円' : '---'"></span>
+                    </div>
+                    <div class="detail-modal-data-row">
+                      <span class="detail-modal-data-label">売買高</span>
+                      <span class="detail-modal-data-value" x-text="formatVolume(selectedTicker.volume_day)"></span>
+                    </div>
+                  </div>
+
+                  <!-- Box 2: Financial Metrics -->
+                  <div class="detail-modal-sub-card">
+                    <div class="detail-modal-sub-card-title">詳細財務指標</div>
+                    <div class="detail-modal-data-row">
+                      <span class="detail-modal-data-label">業種</span>
+                      <span class="detail-modal-data-value" x-text="selectedTicker.sector33 || '---'"></span>
+                    </div>
+                    <div class="detail-modal-data-row">
+                      <span class="detail-modal-data-label">時価総額</span>
+                      <span class="detail-modal-data-value" x-text="formatMarketCap(selectedTicker.market_cap)"></span>
+                    </div>
+                    <div class="detail-modal-data-row">
+                      <span class="detail-modal-data-label">実績PER</span>
+                      <span class="detail-modal-data-value" x-text="selectedTicker.per !== null && selectedTicker.per !== undefined ? Number(selectedTicker.per).toFixed(1) + ' 倍' : '---'"></span>
+                    </div>
+                    <div class="detail-modal-data-row">
+                      <span class="detail-modal-data-label">PBR</span>
+                      <span class="detail-modal-data-value" x-text="selectedTicker.pbr !== null && selectedTicker.pbr !== undefined ? Number(selectedTicker.pbr).toFixed(2) + ' 倍' : '---'"></span>
+                    </div>
+                    <div class="detail-modal-data-row">
+                      <span class="detail-modal-data-label">配当利回り</span>
+                      <span class="detail-modal-data-value" x-text="selectedTicker.dividend_yield !== null && selectedTicker.dividend_yield !== undefined ? (Number(selectedTicker.dividend_yield) * 100).toFixed(2) + '%' : '---'"></span>
+                    </div>
+                  </div>
+
+                  <!-- Box 3: Technical & 52-Week Deviations -->
+                  <div class="detail-modal-sub-card">
+                    <div class="detail-modal-sub-card-title">移動平均・52週乖離</div>
+                    <div class="detail-modal-data-row">
+                      <span class="detail-modal-data-label">50日線乖離</span>
+                      <span class="detail-modal-data-value" x-text="formatPercent(selectedTicker.ma50_diff)"></span>
+                    </div>
+                    <div class="detail-modal-data-row">
+                      <span class="detail-modal-data-label">200日線乖離</span>
+                      <span class="detail-modal-data-value" x-text="formatPercent(selectedTicker.ma200_diff)"></span>
+                    </div>
+                    <div class="detail-modal-data-row">
+                      <span class="detail-modal-data-label">52週安値から</span>
+                      <span class="detail-modal-data-value" x-text="formatPercent(selectedTicker.low52_diff)"></span>
+                    </div>
+                    <div class="detail-modal-data-row">
+                      <span class="detail-modal-data-label">52週高値から</span>
+                      <span class="detail-modal-data-value" x-text="formatPercent(selectedTicker.high52_diff)"></span>
+                    </div>
+                    <div class="detail-modal-data-row">
+                      <span class="detail-modal-data-label">上場日</span>
+                      <span class="detail-modal-data-value" x-text="formatIpoDate(selectedTicker.ipo_date)"></span>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="detail-modal-actions">
+                  <a :href="getYahooLink(selectedTicker.code)" target="_blank" rel="noopener noreferrer" class="detail-action-link-btn detail-primary-btn">
+                    🌐 Yahoo!ファイナンスで詳細を見る
+                  </a>
+                  <a :href="getTradingViewLink(selectedTicker.code)" target="_blank" rel="noopener noreferrer" class="detail-action-link-btn detail-secondary-btn">
+                    📈 TradingView で表示
+                  </a>
+                </div>
+              </div>
+            </template>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- CSS Styles Specific to Viewer page -->
+      <link rel="stylesheet" href="./public/viewer.css" />
+
+      <!-- Lightbox / Drawer / Infinite Scroll JavaScript -->
+      <script src="./public/viewer.js" defer></script>
+
+      <!-- Alpine.js Local bundle -->
+      <script defer src="./public/alpine.js"></script>
+    </div>
+  </body>
+</html>
