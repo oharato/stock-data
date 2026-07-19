@@ -61,7 +61,7 @@ export async function generateChartWebp(
   const getVolY = (vol: number) => volumeTop + volumeHeight - (vol / (maxVolume || 1)) * volumeHeight;
 
   // Build SVG content
-  let svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${width} ${height}" width="${width}" height="${height}" style="background-color: #0b0f19; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">`;
+  let svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${width} ${height}" width="${width}" height="${height}" style="background-color: #0b0f19; font-family: 'Noto Sans CJK JP', 'Noto Sans JP', 'IPAGothic', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">`;
 
   // Defs for gradients & shadows
   svg += `
