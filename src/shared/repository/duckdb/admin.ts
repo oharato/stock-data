@@ -61,7 +61,24 @@ export async function buildDuckDb(
             market::VARCHAR AS market,
             sector33::VARCHAR AS sector33,
             CAST(NULL AS BIGINT) AS market_cap,
-            CAST(NULL AS VARCHAR) AS ipo_date
+            CAST(NULL AS VARCHAR) AS ipo_date,
+            CAST(NULL AS DOUBLE) AS per,
+            CAST(NULL AS DOUBLE) AS pbr,
+            CAST(NULL AS DOUBLE) AS dividend_yield,
+            CAST(NULL AS DOUBLE) AS dividend_rate,
+            CAST(NULL AS DOUBLE) AS current_price,
+            CAST(NULL AS DOUBLE) AS eps,
+            CAST(NULL AS DOUBLE) AS bps,
+            CAST(NULL AS DOUBLE) AS change_percent,
+            CAST(NULL AS DOUBLE) AS prev_close,
+            CAST(NULL AS DOUBLE) AS open_price,
+            CAST(NULL AS DOUBLE) AS high_price,
+            CAST(NULL AS DOUBLE) AS low_price,
+            CAST(NULL AS BIGINT) AS volume_day,
+            CAST(NULL AS DOUBLE) AS ma50_diff,
+            CAST(NULL AS DOUBLE) AS ma200_diff,
+            CAST(NULL AS DOUBLE) AS low52_diff,
+            CAST(NULL AS DOUBLE) AS high52_diff
           FROM read_csv('${tempCsv}', header=true, columns={
             'code': 'VARCHAR', 'name': 'VARCHAR', 'market': 'VARCHAR', 'sector33': 'VARCHAR'
           })

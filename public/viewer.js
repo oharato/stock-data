@@ -59,7 +59,7 @@ function renderTickers(startIndex, limit) {
         <div class="ticker-card-info">
           <div class="left-info">
             <span class="ticker-code-badge">${t.code}</span>
-            <h2 class="ticker-name-text">${t.name}</h2>
+            <h2 class="ticker-name-text" onclick="openDetailModal('${t.code}')">${t.name}</h2>
             <span class="ticker-market-text">${t.market}</span>
           </div>
           <div class="right-info">
@@ -72,7 +72,19 @@ function renderTickers(startIndex, limit) {
               <span class="meta-value accent-text">${formatMarketCap(t.market_cap)}</span>
             </div>
             <div class="metadata-item">
-              <span class="meta-label">データ上場日:</span>
+              <span class="meta-label">PER:</span>
+              <span class="meta-value">${t.per !== null && t.per !== undefined ? Number(t.per).toFixed(1) + '倍' : '---'}</span>
+            </div>
+            <div class="metadata-item">
+              <span class="meta-label">PBR:</span>
+              <span class="meta-value">${t.pbr !== null && t.pbr !== undefined ? Number(t.pbr).toFixed(2) + '倍' : '---'}</span>
+            </div>
+            <div class="metadata-item">
+              <span class="meta-label">配当利回り:</span>
+              <span class="meta-value accent-text">${t.dividend_yield !== null && t.dividend_yield !== undefined ? (Number(t.dividend_yield) * 100).toFixed(2) + '%' : '---'}${t.dividend_rate ? ` (${t.dividend_rate}円)` : ''}</span>
+            </div>
+            <div class="metadata-item">
+              <span class="meta-label">上場日:</span>
               <span class="meta-value">${formatIpoDate(t.ipo_date)}</span>
             </div>
           </div>
@@ -179,6 +191,31 @@ function applyFiltersAndSort() {
       const capB = b.market_cap !== null && b.market_cap !== undefined ? Number(b.market_cap) : Infinity;
       return capA - capB;
     }
+    if (sort === 'per_asc') {
+      const perA = a.per !== null && a.per !== undefined ? Number(a.per) : Infinity;
+      const perB = b.per !== null && b.per !== undefined ? Number(b.per) : Infinity;
+      return perA - perB;
+    }
+    if (sort === 'per_desc') {
+      const perA = a.per !== null && a.per !== undefined ? Number(a.per) : -1;
+      const perB = b.per !== null && b.per !== undefined ? Number(b.per) : -1;
+      return perB - perA;
+    }
+    if (sort === 'pbr_asc') {
+      const pbrA = a.pbr !== null && a.pbr !== undefined ? Number(a.pbr) : Infinity;
+      const pbrB = b.pbr !== null && b.pbr !== undefined ? Number(b.pbr) : Infinity;
+      return pbrA - pbrB;
+    }
+    if (sort === 'pbr_desc') {
+      const pbrA = a.pbr !== null && a.pbr !== undefined ? Number(a.pbr) : -1;
+      const pbrB = b.pbr !== null && b.pbr !== undefined ? Number(b.pbr) : -1;
+      return pbrB - pbrA;
+    }
+    if (sort === 'div_yield_desc') {
+      const divA = a.dividend_yield !== null && a.dividend_yield !== undefined ? Number(a.dividend_yield) : -1;
+      const divB = b.dividend_yield !== null && b.dividend_yield !== undefined ? Number(b.dividend_yield) : -1;
+      return divB - divA;
+    }
     if (sort === 'ipo_date_desc') {
       const dateA = a.ipo_date || '0000-00-00';
       const dateB = b.ipo_date || '0000-00-00';
@@ -210,6 +247,11 @@ function updateActiveFiltersDisplay(query, sector, sort) {
     code_asc: 'コード順',
     market_cap_desc: '時価総額大順',
     market_cap_asc: '時価総額小順',
+    per_asc: 'PER安順',
+    per_desc: 'PER高順',
+    pbr_asc: 'PBR安順',
+    pbr_desc: 'PBR高順',
+    div_yield_desc: '配当利回り順',
     ipo_date_desc: '上場日新順',
     ipo_date_asc: '上場日古順'
   };
@@ -290,8 +332,108 @@ document.addEventListener('keydown', function(e) {
   if (e.key === 'Escape') {
     closeLightbox();
     toggleDrawer(false);
+    closeDetailModal();
   }
 });
+
+// Helper: Format large volumes (e.g. 1.2M, 450K)
+function formatVolume(val) {
+  if (val === null || val === undefined || val === '') return '---';
+  const num = Number(val);
+  if (num >= 1000000) {
+    return `${(num / 1000000).toFixed(1)}M 株`;
+  }
+  if (num >= 1000) {
+    return `${(num / 1000).toFixed(1)}K 株`;
+  }
+  return `${num} 株`;
+}
+
+// Helper: Format deviation percentage (e.g. +4.2%, -1.2%)
+function formatPercent(val) {
+  if (val === null || val === undefined || val === '') return '---';
+  const num = Number(val) * 100;
+  const sign = num > 0 ? '+' : '';
+  return `${sign}${num.toFixed(1)}%`;
+}
+
+// Open Ticker Detail Modal with dashboard layout
+function openDetailModal(code) {
+  const t = allTickers.find(x => x.code === code);
+  if (!t) return;
+  
+  // Header
+  document.getElementById('modalTickerCode').textContent = t.code;
+  document.getElementById('modalTickerName').textContent = t.name;
+  document.getElementById('modalTickerMarket').textContent = t.market || '---';
+  
+  // Price and Change
+  const price = t.current_price !== null && t.current_price !== undefined ? Number(t.current_price).toLocaleString() + ' 円' : '---';
+  document.getElementById('modalTickerPrice').textContent = price;
+  
+  const changeEl = document.getElementById('modalTickerChange');
+  if (t.change_percent !== null && t.change_percent !== undefined) {
+    const changeVal = Number(t.change_percent); // Already a percentage (e.g. -0.22 means -0.22%), do not multiply by 100
+    const sign = changeVal > 0 ? '+' : '';
+    
+    // Calculate price change amplitude (price difference)
+    let diffStr = '';
+    if (t.current_price !== null && t.prev_close !== null) {
+      const diff = Number(t.current_price) - Number(t.prev_close);
+      const diffSign = diff > 0 ? '+' : '';
+      diffStr = `${diffSign}${diff.toLocaleString()}円 `;
+    }
+    
+    changeEl.textContent = `前日比: ${diffStr}(${sign}${changeVal.toFixed(2)}%)`;
+    changeEl.className = 'detail-modal-change ' + (changeVal >= 0 ? 'change-up' : 'change-down');
+  } else {
+    changeEl.textContent = '---';
+    changeEl.className = 'detail-modal-change';
+  }
+
+  // Card 1: Trade Data
+  document.getElementById('modalTickerOpen').textContent = t.open_price !== null ? Number(t.open_price).toLocaleString() + ' 円' : '---';
+  document.getElementById('modalTickerPrevClose').textContent = t.prev_close !== null ? Number(t.prev_close).toLocaleString() + ' 円' : '---';
+  document.getElementById('modalTickerHigh').textContent = t.high_price !== null ? Number(t.high_price).toLocaleString() + ' 円' : '---';
+  document.getElementById('modalTickerLow').textContent = t.low_price !== null ? Number(t.low_price).toLocaleString() + ' 円' : '---';
+  document.getElementById('modalTickerVolume').textContent = formatVolume(t.volume_day);
+
+  // Card 2: Financial Metrics
+  document.getElementById('modalTickerSector').textContent = t.sector33 || '---';
+  document.getElementById('modalTickerMarketCap').textContent = formatMarketCap(t.market_cap);
+  document.getElementById('modalTickerPER').textContent = t.per !== null && t.per !== undefined ? Number(t.per).toFixed(1) + ' 倍' : '---';
+  document.getElementById('modalTickerPBR').textContent = t.pbr !== null && t.pbr !== undefined ? Number(t.pbr).toFixed(2) + ' 倍' : '---';
+  document.getElementById('modalTickerDivYield').textContent = t.dividend_yield !== null && t.dividend_yield !== undefined ? (Number(t.dividend_yield) * 100).toFixed(2) + '%' : '---';
+
+  // Card 3: Technical & 52-Week Deviations
+  document.getElementById('modalTickerMA50').textContent = formatPercent(t.ma50_diff);
+  document.getElementById('modalTickerMA200').textContent = formatPercent(t.ma200_diff);
+  document.getElementById('modalTickerLow52').textContent = formatPercent(t.low52_diff);
+  document.getElementById('modalTickerHigh52').textContent = formatPercent(t.high52_diff);
+  document.getElementById('modalTickerIpoDate').textContent = formatIpoDate(t.ipo_date);
+  
+  // Link generation (Handling regional tickers e.g. 1449@S.T -> 1449.S)
+  const cleanCode = t.code.replace(/@([SFN])\.T$/, '.$1').replace(/@\w+/, '');
+  document.getElementById('modalYahooLink').href = `https://finance.yahoo.co.jp/quote/${cleanCode}`;
+  
+  const tradingViewCode = t.code.replace('.T', '').replace(/@\w+/, '');
+  document.getElementById('modalTradingViewLink').href = `https://jp.tradingview.com/symbols/TSE-${tradingViewCode}/`;
+
+  const modal = document.getElementById('detailModal');
+  if (modal) {
+    modal.style.display = 'flex';
+    document.body.style.overflow = 'hidden';
+  }
+}
+
+// Close Ticker Detail Modal
+function closeDetailModal() {
+  const modal = document.getElementById('detailModal');
+  if (modal) {
+    modal.style.display = 'none';
+    document.body.style.overflow = '';
+  }
+}
 
 // Infinite Scroll window event listener
 window.addEventListener('scroll', () => {

@@ -37,7 +37,24 @@ async function exportDataJson(dbPath: string, outputPath: string) {
         market::VARCHAR AS market,
         sector33::VARCHAR AS sector33,
         market_cap::BIGINT AS market_cap,
-        ipo_date::VARCHAR AS ipo_date
+        ipo_date::VARCHAR AS ipo_date,
+        per::DOUBLE AS per,
+        pbr::DOUBLE AS pbr,
+        dividend_yield::DOUBLE AS dividend_yield,
+        dividend_rate::DOUBLE AS dividend_rate,
+        current_price::DOUBLE AS current_price,
+        eps::DOUBLE AS eps,
+        bps::DOUBLE AS bps,
+        change_percent::DOUBLE AS change_percent,
+        prev_close::DOUBLE AS prev_close,
+        open_price::DOUBLE AS open_price,
+        high_price::DOUBLE AS high_price,
+        low_price::DOUBLE AS low_price,
+        volume_day::BIGINT AS volume_day,
+        ma50_diff::DOUBLE AS ma50_diff,
+        ma200_diff::DOUBLE AS ma200_diff,
+        low52_diff::DOUBLE AS low52_diff,
+        high52_diff::DOUBLE AS high52_diff
       FROM tickers
       ORDER BY code ASC
     `);
