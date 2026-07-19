@@ -56,11 +56,13 @@ jobs:
       # Upload the updated stock.duckdb database to GitHub Releases so users can download it for local use
       - name: Upload database to GitHub Releases
         run: |
-          gh release create latest stock.duckdb \
+          # Create the release if it does not exist (silently ignore if it already exists)
+          gh release create latest \
             --title "Latest Stock Database" \
             --notes "Automated daily stock database update from GitHub Actions." \
-            --prerelease \
-            --clobber
+            --prerelease || true
+          # Upload or overwrite the database file in the existing release
+          gh release upload latest stock.duckdb --clobber
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
