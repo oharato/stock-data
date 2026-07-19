@@ -247,8 +247,8 @@
 .ticker-list {
   display: flex;
   flex-direction: column;
-  gap: 40px;
-  max-width: 1800px;
+  gap: 20px; /* Compress spacing between stock items by 50% */
+  max-width: 100%;
   margin: 0 auto;
 }
 
@@ -257,29 +257,32 @@
   background-color: var(--bg-surface);
   border: 1px solid var(--border);
   border-radius: 12px;
-  padding: 24px;
+  padding: 10px 0; /* Compact top/bottom padding to maximize vertical space */
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  overflow: hidden;
 }
 
 .ticker-card-info {
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  margin-bottom: 20px;
-  gap: 16px;
+  margin-bottom: 8px; /* Drastically reduce space between text and charts */
+  gap: 12px;
+  padding: 0 24px;
 }
 
 @media (min-width: 768px) {
   .ticker-card-info {
     flex-direction: row;
-    align-items: flex-start;
+    align-items: center; /* Center-align elements to form a neat single-line header */
   }
 }
 
 .left-info {
   display: flex;
-  flex-direction: column;
-  gap: 6px;
+  flex-direction: row; /* Align code, name and market in one single line */
+  align-items: center;
+  gap: 12px;
 }
 
 .ticker-code-badge {
@@ -315,19 +318,19 @@
 
 .metadata-item {
   display: flex;
-  flex-direction: column;
-  gap: 4px;
+  flex-direction: row; /* Align meta labels and values horizontally */
+  align-items: center;
+  gap: 6px;
 }
 
 .meta-label {
-  font-size: 11px;
-  text-transform: uppercase;
+  font-size: 12px;
   color: var(--text-secondary);
   font-weight: 600;
 }
 
 .meta-value {
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 700;
   color: var(--text-primary);
 }
@@ -340,7 +343,7 @@
 .charts-panorama {
   display: grid;
   grid-template-columns: 1fr;
-  gap: 20px;
+  gap: 0; /* Remove inner gaps to let charts align seamlessly */
 }
 
 @media (min-width: 992px) {
@@ -351,8 +354,8 @@
 
 .chart-box {
   background-color: var(--bg-base);
-  border: 1px solid var(--border);
-  border-radius: 8px;
+  border: none; /* Remove borders to allow unified panorama flow */
+  border-radius: 0;
   overflow: hidden;
   display: flex;
   flex-direction: column;
@@ -615,4 +618,34 @@
   border-top: 1px dashed var(--border);
   margin-top: 30px;
   margin-bottom: 50px;
+}
+
+/* Full-bleed responsive overrides for large screens */
+body {
+  padding: 16px;
+}
+
+@media (min-width: 1200px) {
+  body {
+    padding: 24px 0; /* Complete removal of left/right app viewport margins */
+  }
+  
+  header {
+    max-width: 100% !important;
+    padding-left: 24px;
+    padding-right: 24px;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+  }
+  
+  .ticker-list {
+    max-width: 100% !important;
+    padding: 0;
+  }
+  
+  .ticker-card {
+    border-left: none;  /* Remove card borders as they snap to screen edges */
+    border-right: none;
+    border-radius: 0;   /* Unround card corners for edge-to-edge aesthetics */
+  }
 }
