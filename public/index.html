@@ -17,20 +17,34 @@
       <!-- Drawer Overlay -->
       <div class="drawer-overlay" x-show="isDrawerOpen" @click="isDrawerOpen = false" x-transition style="display: none;"></div>
 
-      <!-- Hamburger Trigger Button -->
-      <button class="menu-trigger" :class="{ 'active': isDrawerOpen }" @click="isDrawerOpen = !isDrawerOpen" title="フィルターを開く">
-        <span></span>
-        <span></span>
-        <span></span>
-      </button>
+      <!-- Sticky Top Control Bar -->
+      <div class="top-control-bar">
+        <!-- Hamburger Trigger Button inside control bar -->
+        <button class="menu-trigger" :class="{ 'active': isDrawerOpen }" @click="isDrawerOpen = !isDrawerOpen" title="フィルターを開く">
+          <span></span>
+          <span></span>
+          <span></span>
+        </button>
+        
+        <!-- Active Filters Compact Inline Display -->
+        <div class="active-filters-bar-compact">
+          <span class="filter-badge" x-text="searchQuery ? '🔍 ' + searchQuery : '🔍 すべて'"></span>
+          <span class="filter-badge" x-text="selectedSector ? '📁 ' + selectedSector : '📁 全業種'"></span>
+          <span class="filter-badge accent-badge" x-text="getSortLabel()"></span>
+          <span class="filter-badge count-badge" x-text="'対象: ' + filteredTickers.length + '件'"></span>
+        </div>
+      </div>
 
       <!-- Slide-out Drawer -->
       <aside class="filter-drawer" :class="{ 'open': isDrawerOpen }">
         <div class="drawer-header">
-          <h2>📊 フィルター & ソート</h2>
+          <div>
+            <h2>📊 フィルター & ソート</h2>
+            <div class="drawer-match-count" style="font-size: 12px; color: var(--text-secondary); margin-top: 4px;">対象: <span x-text="filteredTickers.length" style="color: var(--accent); font-weight: bold;"></span> / <span x-text="allTickers.length"></span> 銘柄</div>
+          </div>
           <span class="close-drawer-btn" @click="isDrawerOpen = false">&times;</span>
         </div>
-        <form @submit.prevent="applyFiltersAndSort(); isDrawerOpen = false;" class="filter-form">
+        <form @submit.prevent="isDrawerOpen = false;" class="filter-form">
           <div class="form-grid-vertical">
             <!-- Search -->
             <div class="form-group search-group">
@@ -60,42 +74,239 @@
             <div class="form-group">
               <label>並べ替え順</label>
               <select x-model="sortKey" @change="applyFiltersAndSort()">
-                <option value="code_asc">銘柄コード順 (昇順)</option>
-                <option value="market_cap_desc">時価総額順 (大きい順)</option>
-                <option value="market_cap_asc">時価総額順 (小さい順)</option>
+                <option value="code_asc">コード順 (昇順)</option>
+                <option value="code_desc">コード順 (降順)</option>
+                <option value="name_asc">銘柄名順 (昇順)</option>
+                <option value="name_desc">銘柄名順 (降順)</option>
+                <option value="price_asc">株価安順</option>
+                <option value="price_desc">株価高順</option>
+                <option value="change_asc">騰落率低順</option>
+                <option value="change_desc">騰落率高順</option>
+                <option value="volume_asc">売買高少順</option>
+                <option value="volume_desc">売買高多順</option>
+                <option value="market_cap_asc">時価総額安順</option>
+                <option value="market_cap_desc">時価総額高順</option>
                 <option value="per_asc">PER安順 (割安)</option>
                 <option value="per_desc">PER高順</option>
-                <option value="pbr_asc">PBR安順 (1倍割れ等)</option>
+                <option value="pbr_asc">PBR安順</option>
                 <option value="pbr_desc">PBR高順</option>
-                <option value="div_yield_desc">配当利回り順 (高い順)</option>
-                <option value="ipo_date_desc">上場日順 (新しい順)</option>
-                <option value="ipo_date_asc">上場日順 (古い順)</option>
+                <option value="yield_asc">配当利回り低順</option>
+                <option value="yield_desc">配当利回り高順</option>
+                <option value="ma50_asc">50日線乖離低順</option>
+                <option value="ma50_desc">50日線乖離高順</option>
+                <option value="ma200_asc">200日線乖離低順</option>
+                <option value="ma200_desc">200日線乖離高順</option>
+                <option value="low52_asc">52週安値乖離低順</option>
+                <option value="low52_desc">52週安値乖離高順</option>
+                <option value="high52_asc">52週高値乖離低順</option>
+                <option value="high52_desc">52週高値乖離高順</option>
+                <option value="ipo_asc">上場日古順</option>
+                <option value="ipo_desc">上場日新順</option>
               </select>
             </div>
-            
-            <button type="submit" class="apply-filter-btn">条件を適用</button>
+
+            <!-- Price Range -->
+            <div class="form-group range-group">
+              <label>株価範囲</label>
+              <div class="slider-container">
+                <div class="range-sliders">
+                  <input type="range" min="0" max="20000" step="100" x-model.number="filterPriceMin" @input="sliderMinChanged('filterPriceMin', 'filterPriceMax')" class="slider-min" />
+                  <input type="range" min="0" max="20000" step="100" x-model.number="filterPriceMax" @input="sliderMaxChanged('filterPriceMin', 'filterPriceMax')" class="slider-max" />
+                </div>
+                <div class="range-labels">
+                  <span x-text="filterPriceMin.toLocaleString() + ' 円'"></span>
+                  <span class="range-separator">〜</span>
+                  <span x-text="filterPriceMax.toLocaleString() + ' 円'"></span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Change Range -->
+            <div class="form-group range-group">
+              <label>騰落率範囲</label>
+              <div class="slider-container">
+                <div class="range-sliders">
+                  <input type="range" min="-30" max="30" step="0.5" x-model.number="filterChangeMin" @input="sliderMinChanged('filterChangeMin', 'filterChangeMax')" class="slider-min" />
+                  <input type="range" min="-30" max="30" step="0.5" x-model.number="filterChangeMax" @input="sliderMaxChanged('filterChangeMin', 'filterChangeMax')" class="slider-max" />
+                </div>
+                <div class="range-labels">
+                  <span x-text="(filterChangeMin > 0 ? '+' : '') + filterChangeMin + '%'"></span>
+                  <span class="range-separator">〜</span>
+                  <span x-text="(filterChangeMax > 0 ? '+' : '') + filterChangeMax + '%'"></span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Volume Range -->
+            <div class="form-group range-group">
+              <label>売買高範囲</label>
+              <div class="slider-container">
+                <div class="range-sliders">
+                  <input type="range" min="0" max="10000000" step="10000" x-model.number="filterVolumeMin" @input="sliderMinChanged('filterVolumeMin', 'filterVolumeMax')" class="slider-min" />
+                  <input type="range" min="0" max="10000000" step="10000" x-model.number="filterVolumeMax" @input="sliderMaxChanged('filterVolumeMin', 'filterVolumeMax')" class="slider-max" />
+                </div>
+                <div class="range-labels">
+                  <span x-text="formatVolume(filterVolumeMin)"></span>
+                  <span class="range-separator">〜</span>
+                  <span x-text="formatVolume(filterVolumeMax)"></span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Market Cap Range -->
+            <div class="form-group range-group">
+              <label>時価総額範囲</label>
+              <div class="slider-container">
+                <div class="range-sliders">
+                  <input type="range" min="0" max="10000" step="10" x-model.number="filterMarketCapMin" @input="sliderMinChanged('filterMarketCapMin', 'filterMarketCapMax')" class="slider-min" />
+                  <input type="range" min="0" max="10000" step="10" x-model.number="filterMarketCapMax" @input="sliderMaxChanged('filterMarketCapMin', 'filterMarketCapMax')" class="slider-max" />
+                </div>
+                <div class="range-labels">
+                  <span x-text="filterMarketCapMin + ' 億円'"></span>
+                  <span class="range-separator">〜</span>
+                  <span x-text="filterMarketCapMax + ' 億円'"></span>
+                </div>
+              </div>
+            </div>
+
+            <!-- PER Range -->
+            <div class="form-group range-group">
+              <label>実績PER範囲</label>
+              <div class="slider-container">
+                <div class="range-sliders">
+                  <input type="range" min="0" max="100" step="0.5" x-model.number="filterPerMin" @input="sliderMinChanged('filterPerMin', 'filterPerMax')" class="slider-min" />
+                  <input type="range" min="0" max="100" step="0.5" x-model.number="filterPerMax" @input="sliderMaxChanged('filterPerMin', 'filterPerMax')" class="slider-max" />
+                </div>
+                <div class="range-labels">
+                  <span x-text="filterPerMin + ' 倍'"></span>
+                  <span class="range-separator">〜</span>
+                  <span x-text="filterPerMax + ' 倍'"></span>
+                </div>
+              </div>
+            </div>
+
+            <!-- PBR Range -->
+            <div class="form-group range-group">
+              <label>PBR範囲</label>
+              <div class="slider-container">
+                <div class="range-sliders">
+                  <input type="range" min="0" max="10" step="0.1" x-model.number="filterPbrMin" @input="sliderMinChanged('filterPbrMin', 'filterPbrMax')" class="slider-min" />
+                  <input type="range" min="0" max="10" step="0.1" x-model.number="filterPbrMax" @input="sliderMaxChanged('filterPbrMin', 'filterPbrMax')" class="slider-max" />
+                </div>
+                <div class="range-labels">
+                  <span x-text="filterPbrMin + ' 倍'"></span>
+                  <span class="range-separator">〜</span>
+                  <span x-text="filterPbrMax + ' 倍'"></span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Dividend Yield Range -->
+            <div class="form-group range-group">
+              <label>配当利回り範囲</label>
+              <div class="slider-container">
+                <div class="range-sliders">
+                  <input type="range" min="0" max="15" step="0.1" x-model.number="filterYieldMin" @input="sliderMinChanged('filterYieldMin', 'filterYieldMax')" class="slider-min" />
+                  <input type="range" min="0" max="15" step="0.1" x-model.number="filterYieldMax" @input="sliderMaxChanged('filterYieldMin', 'filterYieldMax')" class="slider-max" />
+                </div>
+                <div class="range-labels">
+                  <span x-text="filterYieldMin + '%'"></span>
+                  <span class="range-separator">〜</span>
+                  <span x-text="filterYieldMax + '%'"></span>
+                </div>
+              </div>
+            </div>
+
+            <!-- MA50 Diff Range -->
+            <div class="form-group range-group">
+              <label>50日線乖離率範囲</label>
+              <div class="slider-container">
+                <div class="range-sliders">
+                  <input type="range" min="-50" max="50" step="0.5" x-model.number="filterMa50Min" @input="sliderMinChanged('filterMa50Min', 'filterMa50Max')" class="slider-min" />
+                  <input type="range" min="-50" max="50" step="0.5" x-model.number="filterMa50Max" @input="sliderMaxChanged('filterMa50Min', 'filterMa50Max')" class="slider-max" />
+                </div>
+                <div class="range-labels">
+                  <span x-text="(filterMa50Min > 0 ? '+' : '') + filterMa50Min + '%'"></span>
+                  <span class="range-separator">〜</span>
+                  <span x-text="(filterMa50Max > 0 ? '+' : '') + filterMa50Max + '%'"></span>
+                </div>
+              </div>
+            </div>
+
+            <!-- MA200 Diff Range -->
+            <div class="form-group range-group">
+              <label>200日線乖離率範囲</label>
+              <div class="slider-container">
+                <div class="range-sliders">
+                  <input type="range" min="-50" max="50" step="0.5" x-model.number="filterMa200Min" @input="sliderMinChanged('filterMa200Min', 'filterMa200Max')" class="slider-min" />
+                  <input type="range" min="-50" max="50" step="0.5" x-model.number="filterMa200Max" @input="sliderMaxChanged('filterMa200Min', 'filterMa200Max')" class="slider-max" />
+                </div>
+                <div class="range-labels">
+                  <span x-text="(filterMa200Min > 0 ? '+' : '') + filterMa200Min + '%'"></span>
+                  <span class="range-separator">〜</span>
+                  <span x-text="(filterMa200Max > 0 ? '+' : '') + filterMa200Max + '%'"></span>
+                </div>
+              </div>
+            </div>
+
+            <!-- 52-Week Low Diff Range -->
+            <div class="form-group range-group">
+              <label>52週安値から乖離率</label>
+              <div class="slider-container">
+                <div class="range-sliders">
+                  <input type="range" min="0" max="100" step="1" x-model.number="filterLow52Min" @input="sliderMinChanged('filterLow52Min', 'filterLow52Max')" class="slider-min" />
+                  <input type="range" min="0" max="100" step="1" x-model.number="filterLow52Max" @input="sliderMaxChanged('filterLow52Min', 'filterLow52Max')" class="slider-max" />
+                </div>
+                <div class="range-labels">
+                  <span x-text="'+' + filterLow52Min + '%'"></span>
+                  <span class="range-separator">〜</span>
+                  <span x-text="'+' + filterLow52Max + '%'"></span>
+                </div>
+              </div>
+            </div>
+
+            <!-- 52-Week High Diff Range -->
+            <div class="form-group range-group">
+              <label>52週高値から乖離率</label>
+              <div class="slider-container">
+                <div class="range-sliders">
+                  <input type="range" min="-100" max="0" step="1" x-model.number="filterHigh52Min" @input="sliderMinChanged('filterHigh52Min', 'filterHigh52Max')" class="slider-min" />
+                  <input type="range" min="-100" max="0" step="1" x-model.number="filterHigh52Max" @input="sliderMaxChanged('filterHigh52Min', 'filterHigh52Max')" class="slider-max" />
+                </div>
+                <div class="range-labels">
+                  <span x-text="filterHigh52Min + '%'"></span>
+                  <span class="range-separator">〜</span>
+                  <span x-text="filterHigh52Max + '%'"></span>
+                </div>
+              </div>
+            </div>
+
+            <!-- IPO Date Year Range -->
+            <div class="form-group range-group">
+              <label>上場年範囲</label>
+              <div class="slider-container">
+                <div class="range-sliders">
+                  <input type="range" min="1950" max="2026" step="1" x-model.number="filterIpoMin" @input="sliderMinChanged('filterIpoMin', 'filterIpoMax')" class="slider-min" />
+                  <input type="range" min="1950" max="2026" step="1" x-model.number="filterIpoMax" @input="sliderMaxChanged('filterIpoMin', 'filterIpoMax')" class="slider-max" />
+                </div>
+                <div class="range-labels">
+                  <span x-text="filterIpoMin + ' 年'"></span>
+                  <span class="range-separator">〜</span>
+                  <span x-text="filterIpoMax + ' 年'"></span>
+                </div>
+              </div>
+            </div>
+
+            <div class="filter-actions">
+              <button type="button" @click="isDrawerOpen = false" class="apply-filter-btn">閉じる</button>
+              <button type="button" @click="resetFilters()" class="clear-filter-btn">リセット</button>
+            </div>
           </div>
         </form>
       </aside>
 
       <div class="app-container">
-        <header>
-          <div>
-            <h1 class="brand-title">AGY Stock Chart Viewer</h1>
-            <div class="brand-subtitle">月足・週足・日足を並列でパノラマビュー表示</div>
-            
-            <!-- Active Filters Display -->
-            <div class="active-filters-bar">
-              <span class="active-filter-label">現在の条件:</span>
-              <span class="filter-badge" x-text="searchQuery ? '🔍 ' + searchQuery : '🔍 すべて'"></span>
-              <span class="filter-badge" x-text="selectedSector ? '📁 ' + selectedSector : '📁 業種: すべて'"></span>
-              <span class="filter-badge accent-badge" x-text="getSortLabel()"></span>
-            </div>
-          </div>
-          <div class="system-stats">
-            <span class="stat-badge">DB Status: Static Data</span>
-          </div>
-        </header>
+
 
         <!-- Ticker List (Hydrated dynamically by Alpine x-for) -->
         <main class="ticker-list">
@@ -119,6 +330,13 @@
                   <span class="ticker-code-badge" x-text="t.code"></span>
                   <h2 class="ticker-name-text" @click="openDetail(t)" x-text="t.name"></h2>
                   <span class="ticker-market-text" x-text="t.market"></span>
+                  <div class="ticker-card-price-row">
+                    <span class="ticker-card-price" x-text="t.current_price !== null ? Number(t.current_price).toLocaleString() + ' 円' : '---'"></span>
+                    <span class="ticker-card-change" 
+                          :class="t.change_percent >= 0 ? 'change-up' : 'change-down'"
+                          x-show="t.change_percent !== null"
+                          x-text="'前日比: ' + formatPriceDiff(t) + '(' + (t.change_percent > 0 ? '+' : '') + Number(t.change_percent).toFixed(2) + '%)'"></span>
+                  </div>
                 </div>
                 <div class="right-info">
                   <span class="ticker-sector-text" x-text="t.sector33"></span>
@@ -160,7 +378,7 @@
       <!-- Lightbox / Modal -->
       <div class="lightbox" x-show="isLightboxOpen" @click="closeLightbox()" x-transition style="display: none;">
         <span class="lightbox-close" @click="closeLightbox()">&times;</span>
-        <div class="lightbox-content" @click.stopPropagation()>
+        <div class="lightbox-content" @click.stop>
           <img :src="lightboxImg" alt="拡大画像" />
           <div class="lightbox-caption" x-text="lightboxCaption"></div>
         </div>
@@ -168,7 +386,7 @@
 
       <!-- Ticker Detail Info Modal -->
       <div class="detail-modal-overlay" x-show="isDetailOpen" @click="closeDetail()" x-transition style="display: none;">
-        <div class="detail-modal-card" @click.stopPropagation() x-show="selectedTicker">
+        <div class="detail-modal-card" @click.stop x-show="selectedTicker">
           <template x-if="selectedTicker">
             <div>
               <span class="detail-modal-close-btn" @click="closeDetail()">&times;</span>

@@ -10,6 +10,32 @@ document.addEventListener('alpine:init', () => {
     selectedSector: config.initialSector || '',
     sortKey: config.initialSort || 'code_asc',
     
+    // Range Filters state (initialized to default min/max bounds)
+    filterPriceMin: 0,
+    filterPriceMax: 20000,
+    filterChangeMin: -30,
+    filterChangeMax: 30,
+    filterVolumeMin: 0,
+    filterVolumeMax: 10000000,
+    filterMarketCapMin: 0,
+    filterMarketCapMax: 10000,
+    filterPerMin: 0,
+    filterPerMax: 100,
+    filterPbrMin: 0,
+    filterPbrMax: 10,
+    filterYieldMin: 0,
+    filterYieldMax: 15,
+    filterMa50Min: -50,
+    filterMa50Max: 50,
+    filterMa200Min: -50,
+    filterMa200Max: 50,
+    filterLow52Min: 0,
+    filterLow52Max: 100,
+    filterHigh52Min: -100,
+    filterHigh52Max: 0,
+    filterIpoMin: 1950,
+    filterIpoMax: 2026,
+
     // UI Drawer state
     isDrawerOpen: false,
     
@@ -72,60 +98,90 @@ document.addEventListener('alpine:init', () => {
       if (this.selectedSector) {
         result = result.filter(t => t.sector33 === this.selectedSector);
       }
+
+      // 3. Range filtering helper
+      const checkRange = (val, min, max, defaultMin, defaultMax, scale = 1, isDateYear = false) => {
+        // If sliders are untouched (at default min/max), skip filtering for this property
+        if (Number(min) === defaultMin && Number(max) === defaultMax) {
+          return true;
+        }
+
+        if (val === null || val === undefined || val === '') {
+          // If range is customized but value is empty/null, exclude it
+          return false;
+        }
+        
+        let compareVal = Number(val);
+        if (isDateYear) {
+          compareVal = Number(String(val).substring(0, 4));
+        }
+
+        if (min !== '') {
+          const minNum = Number(min) * scale;
+          if (compareVal < minNum) return false;
+        }
+        if (max !== '') {
+          const maxNum = Number(max) * scale;
+          if (compareVal > maxNum) return false;
+        }
+        return true;
+      };
+
+      // Apply range filters for all metrics
+      result = result.filter(t => {
+        return checkRange(t.current_price, this.filterPriceMin, this.filterPriceMax, 0, 20000) &&
+               checkRange(t.change_percent, this.filterChangeMin, this.filterChangeMax, -30, 30) &&
+               checkRange(t.volume_day, this.filterVolumeMin, this.filterVolumeMax, 0, 10000000) &&
+               checkRange(t.market_cap, this.filterMarketCapMin, this.filterMarketCapMax, 0, 10000, 100000000) &&
+               checkRange(t.per, this.filterPerMin, this.filterPerMax, 0, 100) &&
+               checkRange(t.pbr, this.filterPbrMin, this.filterPbrMax, 0, 10) &&
+               checkRange(t.dividend_yield, this.filterYieldMin, this.filterYieldMax, 0, 15, 0.01) &&
+               checkRange(t.ma50_diff, this.filterMa50Min, this.filterMa50Max, -50, 50, 0.01) &&
+               checkRange(t.ma200_diff, this.filterMa200Min, this.filterMa200Max, -50, 50, 0.01) &&
+               checkRange(t.low52_diff, this.filterLow52Min, this.filterLow52Max, 0, 100, 0.01) &&
+               checkRange(t.high52_diff, this.filterHigh52Min, this.filterHigh52Max, -100, 0, 0.01) &&
+               checkRange(t.ipo_date, this.filterIpoMin, this.filterIpoMax, 1950, 2026, 1, true);
+      });
       
-      // 3. Sorting
+      // 4. Generalized Sorting for all metrics
       const key = this.sortKey;
       result.sort((a, b) => {
-        // Safe comparator helpers
         const getVal = (x, prop) => x[prop] ?? null;
-        
+
+        // Code and Name sort
         if (key === 'code_asc') return a.code.localeCompare(b.code);
-        
-        if (key === 'market_cap_desc' || key === 'market_cap_asc') {
-          const valA = getVal(a, 'market_cap');
-          const valB = getVal(b, 'market_cap');
+        if (key === 'code_desc') return b.code.localeCompare(a.code);
+        if (key === 'name_asc') return a.name.localeCompare(b.name, 'ja');
+        if (key === 'name_desc') return b.name.localeCompare(a.name, 'ja');
+
+        // Resolve generic property metrics
+        const match = key.match(/^(.+)_(asc|desc)$/);
+        if (match) {
+          const [, prop, direction] = match;
+          const isDesc = direction === 'desc';
+          
+          let valA = getVal(a, prop);
+          let valB = getVal(b, prop);
+
+          // Handle property translation to match DB column names
+          if (prop === 'price') { valA = getVal(a, 'current_price'); valB = getVal(b, 'current_price'); }
+          if (prop === 'change') { valA = getVal(a, 'change_percent'); valB = getVal(b, 'change_percent'); }
+          if (prop === 'volume') { valA = getVal(a, 'volume_day'); valB = getVal(b, 'volume_day'); }
+          if (prop === 'yield') { valA = getVal(a, 'dividend_yield'); valB = getVal(b, 'dividend_yield'); }
+          if (prop === 'ma50') { valA = getVal(a, 'ma50_diff'); valB = getVal(b, 'ma50_diff'); }
+          if (prop === 'ma200') { valA = getVal(a, 'ma200_diff'); valB = getVal(b, 'ma200_diff'); }
+          if (prop === 'low52') { valA = getVal(a, 'low52_diff'); valB = getVal(b, 'low52_diff'); }
+          if (prop === 'high52') { valA = getVal(a, 'high52_diff'); valB = getVal(b, 'high52_diff'); }
+          if (prop === 'ipo') { valA = getVal(a, 'ipo_date'); valB = getVal(b, 'ipo_date'); }
+
           if (valA === null && valB === null) return 0;
-          if (valA === null) return 1; // Send nulls to bottom
+          if (valA === null) return 1; // Always push null values to the bottom
           if (valB === null) return -1;
-          return key === 'market_cap_desc' ? valB - valA : valA - valB;
-        }
-        
-        if (key === 'per_asc' || key === 'per_desc') {
-          const valA = getVal(a, 'per');
-          const valB = getVal(b, 'per');
-          if (valA === null && valB === null) return 0;
-          if (valA === null) return 1;
-          if (valB === null) return -1;
-          return key === 'per_asc' ? valA - valB : valB - valA;
-        }
-        
-        if (key === 'pbr_asc' || key === 'pbr_desc') {
-          const valA = getVal(a, 'pbr');
-          const valB = getVal(b, 'pbr');
-          if (valA === null && valB === null) return 0;
-          if (valA === null) return 1;
-          if (valB === null) return -1;
-          return key === 'pbr_asc' ? valA - valB : valB - valA;
-        }
-        
-        if (key === 'div_yield_desc') {
-          const valA = getVal(a, 'dividend_yield');
-          const valB = getVal(b, 'dividend_yield');
-          if (valA === null && valB === null) return 0;
-          if (valA === null) return 1;
-          if (valB === null) return -1;
-          return valB - valA; // High dividend rate first
-        }
-        
-        if (key === 'ipo_date_desc' || key === 'ipo_date_asc') {
-          const valA = getVal(a, 'ipo_date');
-          const valB = getVal(b, 'ipo_date');
-          if (valA === null && valB === null) return 0;
-          if (valA === null) return 1;
-          if (valB === null) return -1;
-          return key === 'ipo_date_desc' 
-            ? valB.localeCompare(valA) 
-            : valA.localeCompare(valB);
+
+          if (typeof valA === 'string' && typeof valB === 'string') {
+            return isDesc ? valB.localeCompare(valA) : valA.localeCompare(valB);
+          }
+          return isDesc ? Number(valB) - Number(valA) : Number(valA) - Number(valB);
         }
         
         return 0;
@@ -135,6 +191,56 @@ document.addEventListener('alpine:init', () => {
       this.page = 1;
       this.displayedTickers = this.filteredTickers.slice(0, this.pageSize);
       this.hasMore = this.filteredTickers.length > this.pageSize;
+    },
+    
+    // Reset all filter options to default boundary values
+    resetFilters() {
+      this.searchQuery = '';
+      this.selectedSector = '';
+      this.filterPriceMin = 0;
+      this.filterPriceMax = 20000;
+      this.filterChangeMin = -30;
+      this.filterChangeMax = 30;
+      this.filterVolumeMin = 0;
+      this.filterVolumeMax = 10000000;
+      this.filterMarketCapMin = 0;
+      this.filterMarketCapMax = 10000;
+      this.filterPerMin = 0;
+      this.filterPerMax = 100;
+      this.filterPbrMin = 0;
+      this.filterPbrMax = 10;
+      this.filterYieldMin = 0;
+      this.filterYieldMax = 15;
+      this.filterMa50Min = -50;
+      this.filterMa50Max = 50;
+      this.filterMa200Min = -50;
+      this.filterMa200Max = 50;
+      this.filterLow52Min = 0;
+      this.filterLow52Max = 100;
+      this.filterHigh52Min = -100;
+      this.filterHigh52Max = 0;
+      this.filterIpoMin = 1950;
+      this.filterIpoMax = 2026;
+      this.applyFiltersAndSort();
+    },
+
+    // Handle range slider collision (prevent min exceeding max and vice-versa)
+    sliderMinChanged(minProp, maxProp) {
+      const min = Number(this[minProp]);
+      const max = Number(this[maxProp]);
+      if (min > max) {
+        this[minProp] = max;
+      }
+      this.applyFiltersAndSort();
+    },
+
+    sliderMaxChanged(minProp, maxProp) {
+      const min = Number(this[minProp]);
+      const max = Number(this[maxProp]);
+      if (max < min) {
+        this[maxProp] = min;
+      }
+      this.applyFiltersAndSort();
     },
     
     // Pagination trigger
@@ -149,16 +255,34 @@ document.addEventListener('alpine:init', () => {
     // Active label indicator helper
     getSortLabel() {
       const labels = {
-        'code_asc': '↕️ コード順',
-        'market_cap_desc': '↕️ 時価総額順 (高)',
-        'market_cap_asc': '↕️ 時価総額順 (安)',
-        'per_asc': '↕️ PER安順',
+        'code_asc': '↕️ コード順 (昇順)',
+        'code_desc': '↕️ コード順 (降順)',
+        'name_asc': '↕️ 銘柄名順 (昇順)',
+        'name_desc': '↕️ 銘柄名順 (降順)',
+        'price_asc': '↕️ 株価安順',
+        'price_desc': '↕️ 株価高順',
+        'change_asc': '↕️ 騰落率低順',
+        'change_desc': '↕️ 騰落率高順',
+        'volume_asc': '↕️ 売買高少順',
+        'volume_desc': '↕️ 売買高多順',
+        'market_cap_asc': '↕️ 時価総額安順',
+        'market_cap_desc': '↕️ 時価総額高順',
+        'per_asc': '↕️ PER安順 (割安)',
         'per_desc': '↕️ PER高順',
         'pbr_asc': '↕️ PBR安順',
         'pbr_desc': '↕️ PBR高順',
-        'div_yield_desc': '↕️ 配当利回り順',
-        'ipo_date_desc': '↕️ 上場日順 (新)',
-        'ipo_date_asc': '↕️ 上場日順 (古)'
+        'yield_asc': '↕️ 利回り低順',
+        'yield_desc': '↕️ 利回り高順',
+        'ma50_asc': '↕️ 50日線乖離低順',
+        'ma50_desc': '↕️ 50日線乖離高順',
+        'ma200_asc': '↕️ 200日線乖離低順',
+        'ma200_desc': '↕️ 200日線乖離高順',
+        'low52_asc': '↕️ 52週安値乖離低順',
+        'low52_desc': '↕️ 52週安値乖離高順',
+        'high52_asc': '↕️ 52週高値乖離低順',
+        'high52_desc': '↕️ 52週高値乖離高順',
+        'ipo_asc': '↕️ 上場日古順',
+        'ipo_desc': '↕️ 上場日新順'
       };
       return labels[this.sortKey] || '↕️ 整列';
     },
