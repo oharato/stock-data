@@ -41,13 +41,15 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      # Cache DuckDB database file and WebP chart images to enable fast incremental updates on GitHub Actions
+      # Cache DuckDB, WebP charts, and EDINET downloads to enable fast incremental updates on GitHub Actions
       - name: Cache DuckDB and Generated Charts
         uses: actions/cache@v6
         with:
           path: |
             stock.duckdb
             data/charts
+            data/edinet_cache
+            data/edinet
           key: stock-data-cache-${{ github.run_id }}
           restore-keys: |
             stock-data-cache-
@@ -57,6 +59,8 @@ jobs:
         run: npm run all:static
         env:
           PORT: 3000
+          EDINET_API_KEY: ${{ secrets.EDINET_API_KEY }}
+          EDINET_DOWNLOAD_DIR: data/edinet_cache
 
       # Upload the updated stock.duckdb database to GitHub Releases so users can download it for local use
       - name: Upload database to GitHub Releases
