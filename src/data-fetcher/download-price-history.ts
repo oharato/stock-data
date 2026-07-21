@@ -1,8 +1,6 @@
 import { readFileSync, writeFileSync, existsSync, mkdirSync, statSync } from 'fs';
 import type { Ticker, ErrorRecord } from '../shared/domain/types.js';
 import { fetchTickerRange } from '../shared/repository/yahoo.js';
-import { fetchAndSaveTickers } from './logic/merge-tickers.js';
-import { buildDuckDb } from '../shared/repository/duckdb.js';
 import { createLogger } from '../shared/logic/logger.js';
 
 const DELAY_MS = 1000;
@@ -17,33 +15,31 @@ function getLocalDateString(date: Date): string {
 }
 
 async function main() {
-  const logger = createLogger('fetch');
-  logger.log(`Starting fetch (log: ${logger.logFile})`);
+  const logger = createLogger('download-price-history');
+  logger.log(`Starting download-price-history (log: ${logger.logFile})`);
 
-  // Step 1: data/tickers.json をYahoo Financeから最新に更新
-  logger.log('Step 1: Updating data/tickers.json from Yahoo Finance...');
+  // Read ticker list from JSON cache
   let tickers: Ticker[] = [];
-  try {
-    tickers = await fetchAndSaveTickers('data/tickers.json');
-  } catch (err) {
-    logger.error(`Failed to fetch tickers from Yahoo Finance: ${err}`);
-    if (existsSync('data/tickers.json')) {
-      logger.log('Using cached data/tickers.json');
-      tickers = JSON.parse(readFileSync('data/tickers.json', 'utf-8'));
-    } else if (existsSync('tickers.json')) {
-      logger.log('Using legacy cached tickers.json');
-      tickers = JSON.parse(readFileSync('tickers.json', 'utf-8'));
-    } else {
-      logger.error('No tickers.json found. Exiting.');
+  const tickersJsonPath = 'data/tickers.json';
+
+  if (existsSync(tickersJsonPath)) {
+    try {
+      tickers = JSON.parse(readFileSync(tickersJsonPath, 'utf-8'));
+      logger.log(`Loaded ${tickers.length} tickers from ${tickersJsonPath}`);
+    } catch (err) {
+      logger.error(`Failed to parse ${tickersJsonPath}: ${err}`);
       process.exit(1);
     }
+  } else {
+    logger.error(`No tickers list found at ${tickersJsonPath}. Run 'npm run download:tickers' first.`);
+    process.exit(1);
   }
 
   mkdirSync(RAW_DIR, { recursive: true });
 
   const errors: ErrorRecord[] = [];
   const todayStr = getLocalDateString(new Date());
-  logger.log(`Step 2: Fetching history (${START_DATE} ~ ${todayStr}) for ${tickers.length} tickers...`);
+  logger.log(`Fetching history (${START_DATE} ~ ${todayStr}) for ${tickers.length} tickers...`);
 
   let done = 0;
   let skipped = 0;
@@ -94,23 +90,13 @@ async function main() {
   }
 
   logger.done();
-  logger.log(`Fetch phase complete: ${done} tickers processed (${skipped} skipped, ${errors.length} errors)`);
+  logger.log(`Download phase complete: ${done} tickers processed (${skipped} skipped, ${errors.length} errors)`);
 
   if (errors.length > 0) {
     writeFileSync('errors.json', JSON.stringify(errors, null, 2));
     logger.error(`${errors.length} errors saved to errors.json`);
   } else if (existsSync('errors.json')) {
     writeFileSync('errors.json', '[]');
-  }
-
-  // Step 3: DuckDB 構築
-  logger.log('Step 3: Rebuilding stock.duckdb from JSON files...');
-  try {
-    await buildDuckDb(`${RAW_DIR}/*.json`);
-    logger.log('DuckDB rebuild complete!');
-  } catch (err) {
-    logger.error(`Failed to build DuckDB: ${err}`);
-    process.exit(1);
   }
 
   logger.log('All done!');

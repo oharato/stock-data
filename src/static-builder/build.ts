@@ -53,7 +53,10 @@ async function exportDataJson(dbPath: string, outputPath: string) {
         ma50_diff::DOUBLE AS ma50_diff,
         ma200_diff::DOUBLE AS ma200_diff,
         low52_diff::DOUBLE AS low52_diff,
-        high52_diff::DOUBLE AS high52_diff
+        high52_diff::DOUBLE AS high52_diff,
+        business_description::VARCHAR AS business_description,
+        business_risks::VARCHAR AS business_risks,
+        business_policy::VARCHAR AS business_policy
       FROM tickers
       ORDER BY code ASC
     `);

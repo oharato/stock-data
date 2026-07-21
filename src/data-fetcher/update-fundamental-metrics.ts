@@ -33,8 +33,8 @@ interface TickerFundamentals {
 }
 
 async function main() {
-  const logger = createLogger('fetch-market-caps');
-  logger.log(`Starting fetch-market-caps (log: ${logger.logFile})`);
+  const logger = createLogger('update-fundamental-metrics');
+  logger.log(`Starting update-fundamental-metrics (log: ${logger.logFile})`);
 
   const dbPath = resolve('stock.duckdb');
   if (!existsSync(dbPath)) {

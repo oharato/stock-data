@@ -405,81 +405,107 @@
                 </div>
               </div>
               <div class="detail-modal-body">
-                <div class="detail-modal-grid-3col">
-                  <!-- Box 1: Trade Data -->
-                  <div class="detail-modal-sub-card">
-                    <div class="detail-modal-sub-card-title">株価・取引データ</div>
-                    <div class="detail-modal-data-row">
-                      <span class="detail-modal-data-label">始値</span>
-                      <span class="detail-modal-data-value" x-text="selectedTicker.open_price !== null ? Number(selectedTicker.open_price).toLocaleString() + ' 円' : '---'"></span>
-                    </div>
-                    <div class="detail-modal-data-row">
-                      <span class="detail-modal-data-label">前日終値</span>
-                      <span class="detail-modal-data-value" x-text="selectedTicker.prev_close !== null ? Number(selectedTicker.prev_close).toLocaleString() + ' 円' : '---'"></span>
-                    </div>
-                    <div class="detail-modal-data-row">
-                      <span class="detail-modal-data-label">本日高値</span>
-                      <span class="detail-modal-data-value" x-text="selectedTicker.high_price !== null ? Number(selectedTicker.high_price).toLocaleString() + ' 円' : '---'"></span>
-                    </div>
-                    <div class="detail-modal-data-row">
-                      <span class="detail-modal-data-label">本日安値</span>
-                      <span class="detail-modal-data-value" x-text="selectedTicker.low_price !== null ? Number(selectedTicker.low_price).toLocaleString() + ' 円' : '---'"></span>
-                    </div>
-                    <div class="detail-modal-data-row">
-                      <span class="detail-modal-data-label">売買高</span>
-                      <span class="detail-modal-data-value" x-text="formatVolume(selectedTicker.volume_day)"></span>
-                    </div>
-                  </div>
+                <!-- Tab Buttons (Shown only if qualitative descriptions exist) -->
+                <div class="tab-buttons" x-show="selectedTicker.business_description || selectedTicker.business_risks || selectedTicker.business_policy" style="display: none;">
+                  <button type="button" @click="activeDetailTab = 'financial'" :class="{ 'active': activeDetailTab === 'financial' }">📊 財務・株価データ</button>
+                  <button type="button" @click="activeDetailTab = 'description'" :class="{ 'active': activeDetailTab === 'description' }" x-show="selectedTicker.business_description">📝 事業内容</button>
+                  <button type="button" @click="activeDetailTab = 'risks'" :class="{ 'active': activeDetailTab === 'risks' }" x-show="selectedTicker.business_risks">⚠️ 事業リスク</button>
+                  <button type="button" @click="activeDetailTab = 'policy'" :class="{ 'active': activeDetailTab === 'policy' }" x-show="selectedTicker.business_policy">🎯 経営方針</button>
+                </div>
 
-                  <!-- Box 2: Financial Metrics -->
-                  <div class="detail-modal-sub-card">
-                    <div class="detail-modal-sub-card-title">詳細財務指標</div>
-                    <div class="detail-modal-data-row">
-                      <span class="detail-modal-data-label">業種</span>
-                      <span class="detail-modal-data-value" x-text="selectedTicker.sector33 || '---'"></span>
+                <!-- Tab 1: Financial & Trade Data -->
+                <div x-show="activeDetailTab === 'financial' || !(selectedTicker.business_description || selectedTicker.business_risks || selectedTicker.business_policy)">
+                  <div class="detail-modal-grid-3col">
+                    <!-- Box 1: Trade Data -->
+                    <div class="detail-modal-sub-card">
+                      <div class="detail-modal-sub-card-title">株価・取引データ</div>
+                      <div class="detail-modal-data-row">
+                        <span class="detail-modal-data-label">始値</span>
+                        <span class="detail-modal-data-value" x-text="selectedTicker.open_price !== null ? Number(selectedTicker.open_price).toLocaleString() + ' 円' : '---'"></span>
+                      </div>
+                      <div class="detail-modal-data-row">
+                        <span class="detail-modal-data-label">前日終値</span>
+                        <span class="detail-modal-data-value" x-text="selectedTicker.prev_close !== null ? Number(selectedTicker.prev_close).toLocaleString() + ' 円' : '---'"></span>
+                      </div>
+                      <div class="detail-modal-data-row">
+                        <span class="detail-modal-data-label">本日高値</span>
+                        <span class="detail-modal-data-value" x-text="selectedTicker.high_price !== null ? Number(selectedTicker.high_price).toLocaleString() + ' 円' : '---'"></span>
+                      </div>
+                      <div class="detail-modal-data-row">
+                        <span class="detail-modal-data-label">本日安値</span>
+                        <span class="detail-modal-data-value" x-text="selectedTicker.low_price !== null ? Number(selectedTicker.low_price).toLocaleString() + ' 円' : '---'"></span>
+                      </div>
+                      <div class="detail-modal-data-row">
+                        <span class="detail-modal-data-label">売買高</span>
+                        <span class="detail-modal-data-value" x-text="formatVolume(selectedTicker.volume_day)"></span>
+                      </div>
                     </div>
-                    <div class="detail-modal-data-row">
-                      <span class="detail-modal-data-label">時価総額</span>
-                      <span class="detail-modal-data-value" x-text="formatMarketCap(selectedTicker.market_cap)"></span>
-                    </div>
-                    <div class="detail-modal-data-row">
-                      <span class="detail-modal-data-label">実績PER</span>
-                      <span class="detail-modal-data-value" x-text="selectedTicker.per !== null && selectedTicker.per !== undefined ? Number(selectedTicker.per).toFixed(1) + ' 倍' : '---'"></span>
-                    </div>
-                    <div class="detail-modal-data-row">
-                      <span class="detail-modal-data-label">PBR</span>
-                      <span class="detail-modal-data-value" x-text="selectedTicker.pbr !== null && selectedTicker.pbr !== undefined ? Number(selectedTicker.pbr).toFixed(2) + ' 倍' : '---'"></span>
-                    </div>
-                    <div class="detail-modal-data-row">
-                      <span class="detail-modal-data-label">配当利回り</span>
-                      <span class="detail-modal-data-value" x-text="selectedTicker.dividend_yield !== null && selectedTicker.dividend_yield !== undefined ? (Number(selectedTicker.dividend_yield) * 100).toFixed(2) + '%' : '---'"></span>
-                    </div>
-                  </div>
 
-                  <!-- Box 3: Technical & 52-Week Deviations -->
-                  <div class="detail-modal-sub-card">
-                    <div class="detail-modal-sub-card-title">移動平均・52週乖離</div>
-                    <div class="detail-modal-data-row">
-                      <span class="detail-modal-data-label">50日線乖離</span>
-                      <span class="detail-modal-data-value" x-text="formatPercent(selectedTicker.ma50_diff)"></span>
+                    <!-- Box 2: Financial Metrics -->
+                    <div class="detail-modal-sub-card">
+                      <div class="detail-modal-sub-card-title">詳細財務指標</div>
+                      <div class="detail-modal-data-row">
+                        <span class="detail-modal-data-label">業種</span>
+                        <span class="detail-modal-data-value" x-text="selectedTicker.sector33 || '---'"></span>
+                      </div>
+                      <div class="detail-modal-data-row">
+                        <span class="detail-modal-data-label">時価総額</span>
+                        <span class="detail-modal-data-value" x-text="formatMarketCap(selectedTicker.market_cap)"></span>
+                      </div>
+                      <div class="detail-modal-data-row">
+                        <span class="detail-modal-data-label">実績PER</span>
+                        <span class="detail-modal-data-value" x-text="selectedTicker.per !== null && selectedTicker.per !== undefined ? Number(selectedTicker.per).toFixed(1) + ' 倍' : '---'"></span>
+                      </div>
+                      <div class="detail-modal-data-row">
+                        <span class="detail-modal-data-label">PBR</span>
+                        <span class="detail-modal-data-value" x-text="selectedTicker.pbr !== null && selectedTicker.pbr !== undefined ? Number(selectedTicker.pbr).toFixed(2) + ' 倍' : '---'"></span>
+                      </div>
+                      <div class="detail-modal-data-row">
+                        <span class="detail-modal-data-label">配当利回り</span>
+                        <span class="detail-modal-data-value" x-text="selectedTicker.dividend_yield !== null && selectedTicker.dividend_yield !== undefined ? (Number(selectedTicker.dividend_yield) * 100).toFixed(2) + '%' : '---'"></span>
+                      </div>
                     </div>
-                    <div class="detail-modal-data-row">
-                      <span class="detail-modal-data-label">200日線乖離</span>
-                      <span class="detail-modal-data-value" x-text="formatPercent(selectedTicker.ma200_diff)"></span>
-                    </div>
-                    <div class="detail-modal-data-row">
-                      <span class="detail-modal-data-label">52週安値から</span>
-                      <span class="detail-modal-data-value" x-text="formatPercent(selectedTicker.low52_diff)"></span>
-                    </div>
-                    <div class="detail-modal-data-row">
-                      <span class="detail-modal-data-label">52週高値から</span>
-                      <span class="detail-modal-data-value" x-text="formatPercent(selectedTicker.high52_diff)"></span>
-                    </div>
-                    <div class="detail-modal-data-row">
-                      <span class="detail-modal-data-label">上場日</span>
-                      <span class="detail-modal-data-value" x-text="formatIpoDate(selectedTicker.ipo_date)"></span>
+
+                    <!-- Box 3: Technical & 52-Week Deviations -->
+                    <div class="detail-modal-sub-card">
+                      <div class="detail-modal-sub-card-title">移動平均・52週乖離</div>
+                      <div class="detail-modal-data-row">
+                        <span class="detail-modal-data-label">50日線乖離</span>
+                        <span class="detail-modal-data-value" x-text="formatPercent(selectedTicker.ma50_diff)"></span>
+                      </div>
+                      <div class="detail-modal-data-row">
+                        <span class="detail-modal-data-label">200日線乖離</span>
+                        <span class="detail-modal-data-value" x-text="formatPercent(selectedTicker.ma200_diff)"></span>
+                      </div>
+                      <div class="detail-modal-data-row">
+                        <span class="detail-modal-data-label">52週安値から</span>
+                        <span class="detail-modal-data-value" x-text="formatPercent(selectedTicker.low52_diff)"></span>
+                      </div>
+                      <div class="detail-modal-data-row">
+                        <span class="detail-modal-data-label">52週高値から</span>
+                        <span class="detail-modal-data-value" x-text="formatPercent(selectedTicker.high52_diff)"></span>
+                      </div>
+                      <div class="detail-modal-data-row">
+                        <span class="detail-modal-data-label">上場日</span>
+                        <span class="detail-modal-data-value" x-text="formatIpoDate(selectedTicker.ipo_date)"></span>
+                      </div>
                     </div>
                   </div>
+                </div>
+
+                <!-- Tab 2: Business Description -->
+                <div x-show="activeDetailTab === 'description' && selectedTicker.business_description" style="display: none;">
+                  <div class="detail-text-area" x-text="selectedTicker.business_description"></div>
+                </div>
+
+                <!-- Tab 3: Business Risks -->
+                <div x-show="activeDetailTab === 'risks' && selectedTicker.business_risks" style="display: none;">
+                  <div class="detail-text-area" x-text="selectedTicker.business_risks"></div>
+                </div>
+
+                <!-- Tab 4: Business Policy -->
+                <div x-show="activeDetailTab === 'policy' && selectedTicker.business_policy" style="display: none;">
+                  <div class="detail-text-area" x-text="selectedTicker.business_policy"></div>
                 </div>
 
                 <div class="detail-modal-actions">

@@ -47,6 +47,7 @@ document.addEventListener('alpine:init', () => {
     // Ticker Details popup state
     isDetailOpen: false,
     selectedTicker: null,
+    activeDetailTab: 'financial',
     
     // Pagination and rendered sub-list
     filteredTickers: [],
@@ -305,6 +306,7 @@ document.addEventListener('alpine:init', () => {
     // Details popup triggers
     openDetail(ticker) {
       this.selectedTicker = ticker;
+      this.activeDetailTab = 'financial';
       this.isDetailOpen = true;
       document.body.style.overflow = 'hidden';
     },

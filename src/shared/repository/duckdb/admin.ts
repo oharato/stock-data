@@ -78,7 +78,10 @@ export async function buildDuckDb(
             CAST(NULL AS DOUBLE) AS ma50_diff,
             CAST(NULL AS DOUBLE) AS ma200_diff,
             CAST(NULL AS DOUBLE) AS low52_diff,
-            CAST(NULL AS DOUBLE) AS high52_diff
+            CAST(NULL AS DOUBLE) AS high52_diff,
+            CAST(NULL AS VARCHAR) AS business_description,
+            CAST(NULL AS VARCHAR) AS business_risks,
+            CAST(NULL AS VARCHAR) AS business_policy
           FROM read_csv('${tempCsv}', header=true, columns={
             'code': 'VARCHAR', 'name': 'VARCHAR', 'market': 'VARCHAR', 'sector33': 'VARCHAR'
           })
