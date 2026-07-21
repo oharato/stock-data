@@ -127,7 +127,7 @@ async function main() {
             if (paths.every(p => existsSync(p))) {
               const stats = await Promise.all(paths.map(p => fs.stat(p)));
               const minMtime = Math.min(...stats.map(s => s.mtimeMs));
-              const maxDateTs = new Date(`${maxDate}T23:59:59Z`).getTime();
+              const maxDateTs = new Date(`${maxDate}T15:00:00+09:00`).getTime();
               
               if (minMtime >= maxDateTs) {
                 shouldSkip = true;

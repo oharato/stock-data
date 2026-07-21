@@ -119,7 +119,7 @@ export async function fetchAndSaveTickers(outputPath = 'data/tickers.json'): Pro
       try {
         const cachedList: Ticker[] = JSON.parse(readFileSync(path, 'utf-8'));
         for (const t of cachedList) {
-          if (t.code && t.name && t.market && t.sector33) {
+          if (t.code && t.name) {
             cacheMap.set(t.code, t);
           }
         }

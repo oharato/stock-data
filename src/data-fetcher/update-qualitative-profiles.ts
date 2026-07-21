@@ -90,7 +90,8 @@ async function main() {
 
   // 3. Initialize repositories and parser
   const repo = new EdinetRepository(edinetDbPath);
-  const cacheDir = resolve('data/edinet_cache');
+  // Use EDINET_DOWNLOAD_DIR environment variable if specified (useful for GitHub Actions caching)
+  const cacheDir = resolve(process.env.EDINET_DOWNLOAD_DIR || 'data/edinet_cache');
   const downloader = new EdinetXbrlDownloader({
     apiKey: process.env.EDINET_API_KEY || '',
     enableRateLimit: true,
@@ -143,6 +144,7 @@ async function main() {
       const xml = await fs.readFile(xbrlPath, 'utf-8');
       const data = parser.parse(xml);
       const qualInfo = data.getQualitativeInfo();
+      const metrics = data.getKeyMetrics();
 
       const desc = qualInfo.businessDescription || '';
       const risks = qualInfo.businessRisks || '';
@@ -162,6 +164,74 @@ async function main() {
           business_policy = '${escPolicy}'
         WHERE code = '${escTicker}'
       `);
+
+      // 1-2. Also insert annual report metrics to quarterly_progress to display together in comparison chart
+      const aNetSales = metrics.netSales !== undefined ? String(metrics.netSales) : 'NULL';
+      const aOpIncome = metrics.operatingIncome !== undefined ? String(metrics.operatingIncome) : 'NULL';
+      const aOrdIncome = metrics.ordinaryIncome !== undefined ? String(metrics.ordinaryIncome) : 'NULL';
+      const aNetIncome = metrics.netIncome !== undefined ? String(metrics.netIncome) : 'NULL';
+      const aEps = metrics.earningsPerShare !== undefined ? String(metrics.earningsPerShare) : 'NULL';
+      const escDocName = doc.docDescription.replace(/'/g, "''");
+      const escSubmitDate = doc.submitDate.replace(/'/g, "''");
+
+      await conn.run(`
+        INSERT OR REPLACE INTO quarterly_progress (
+          ticker, doc_id, doc_name, submit_date, net_sales, operating_income, ordinary_income, net_income, eps
+        ) VALUES (
+          '${escTicker}', '${doc.docID}', '${escDocName}', '${escSubmitDate}', ${aNetSales}, ${aOpIncome}, ${aOrdIncome}, ${aNetIncome}, ${aEps}
+        )
+      `);
+
+      // 2. Fetch quarterly (140) and semi-annual (160) reports progress qualitative data
+      const allDocs = repo.findDocuments({
+        secCode: secCode
+      });
+      const quarterlyDocs = allDocs
+        .filter(d => d.docTypeCode === EdinetDocumentType.QuarterlyReport || d.docTypeCode === EdinetDocumentType.SemiAnnualReport)
+        .sort((a, b) => b.submitDate.localeCompare(a.submitDate))
+        .slice(0, 4); // Keep up to 4 most recent quarters (approx 1 year)
+
+      for (const qDoc of quarterlyDocs) {
+        const existing = await conn.runAndReadAll(`
+          SELECT doc_id::VARCHAR AS doc_id FROM quarterly_progress WHERE doc_id = '${qDoc.docID}'
+        `);
+        if (existing.getRowObjects().length > 0) {
+          continue; // Already processed
+        }
+
+        logger.log(`  Downloading quarterly report ${qDoc.docID} (${qDoc.docDescription}, filed ${qDoc.submitDate}) for ${ticker}...`);
+        const qXbrlPath = await downloader.download(qDoc.docID, cacheDir);
+        if (!qXbrlPath || !existsSync(qXbrlPath)) {
+          logger.error(`  Failed to download XBRL for quarterly report ${qDoc.docID}`);
+          continue;
+        }
+
+        const qXml = await fs.readFile(qXbrlPath, 'utf-8');
+        const qData = parser.parse(qXml);
+        const qMetrics = qData.getKeyMetrics();
+
+        const qNetSales = qMetrics.netSales !== undefined ? String(qMetrics.netSales) : 'NULL';
+        const qOpIncome = qMetrics.operatingIncome !== undefined ? String(qMetrics.operatingIncome) : 'NULL';
+        const qOrdIncome = qMetrics.ordinaryIncome !== undefined ? String(qMetrics.ordinaryIncome) : 'NULL';
+        const qNetIncome = qMetrics.netIncome !== undefined ? String(qMetrics.netIncome) : 'NULL';
+        const qEps = qMetrics.earningsPerShare !== undefined ? String(qMetrics.earningsPerShare) : 'NULL';
+
+        if (qNetSales === 'NULL' && qOpIncome === 'NULL' && qOrdIncome === 'NULL' && qNetIncome === 'NULL') {
+          continue;
+        }
+
+        const escQDocName = qDoc.docDescription.replace(/'/g, "''");
+        const escQSubmitDate = qDoc.submitDate.replace(/'/g, "''");
+
+        await conn.run(`
+          INSERT OR REPLACE INTO quarterly_progress (
+            ticker, doc_id, doc_name, submit_date, net_sales, operating_income, ordinary_income, net_income, eps
+          ) VALUES (
+            '${escTicker}', '${qDoc.docID}', '${escQDocName}', '${escQSubmitDate}', ${qNetSales}, ${qOpIncome}, ${qOrdIncome}, ${qNetIncome}, ${qEps}
+          )
+        `);
+        logger.log(`  Saved quarterly progress metrics ${qDoc.docID} to DB.`);
+      }
 
       processed++;
       logger.log(`Successfully updated database for ${ticker}.`);
