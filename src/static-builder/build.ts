@@ -25,59 +25,91 @@ async function exportDataJson(dbPath: string, outputPath: string) {
     throw new Error(`Database file not found at ${absDb}`);
   }
 
-  const inst = await DuckDBInstance.create(absDb, { access_mode: 'READ_ONLY' });
-  const conn = await inst.connect();
+  // To avoid DuckDB file locking issues (especially when other processes like MCP server hold a lock),
+  // we copy the database file to a temporary location and read from the copy.
+  const tempDbPath = `${absDb}.tmp`;
+  console.log(`Copying database to temporary file to avoid locks: ${tempDbPath}`);
+  await fs.copyFile(absDb, tempDbPath);
+
+  const walPath = `${absDb}.wal`;
+  const tempWalPath = `${tempDbPath}.wal`;
+  let hasWal = false;
+  if (existsSync(walPath)) {
+    try {
+      await fs.copyFile(walPath, tempWalPath);
+      hasWal = true;
+    } catch (e) {
+      console.warn('Failed to copy WAL file:', e);
+    }
+  }
+
   try {
-    console.log('Querying stock tickers for JSON export...');
-    const result = await conn.runAndReadAll(`
-      SELECT 
-        code::VARCHAR AS code,
-        name::VARCHAR AS name,
-        market::VARCHAR AS market,
-        sector33::VARCHAR AS sector33,
-        market_cap::BIGINT AS market_cap,
-        ipo_date::VARCHAR AS ipo_date,
-        per::DOUBLE AS per,
-        pbr::DOUBLE AS pbr,
-        dividend_yield::DOUBLE AS dividend_yield,
-        dividend_rate::DOUBLE AS dividend_rate,
-        current_price::DOUBLE AS current_price,
-        eps::DOUBLE AS eps,
-        bps::DOUBLE AS bps,
-        change_percent::DOUBLE AS change_percent,
-        prev_close::DOUBLE AS prev_close,
-        open_price::DOUBLE AS open_price,
-        high_price::DOUBLE AS high_price,
-        low_price::DOUBLE AS low_price,
-        volume_day::BIGINT AS volume_day,
-        ma50_diff::DOUBLE AS ma50_diff,
-        ma200_diff::DOUBLE AS ma200_diff,
-        low52_diff::DOUBLE AS low52_diff,
-        high52_diff::DOUBLE AS high52_diff,
-        business_description::VARCHAR AS business_description,
-        business_risks::VARCHAR AS business_risks,
-        business_policy::VARCHAR AS business_policy
-      FROM tickers
-      ORDER BY code ASC
-    `);
-    const rows = result.getRowObjects() as any[];
-    
-    // Convert BigInt to Number for JSON serialization
-    const serializedRows = rows.map(r => {
-      const newRow: any = {};
-      for (const key of Object.keys(r)) {
-        const val = r[key];
-        newRow[key] = typeof val === 'bigint' ? Number(val) : val;
-      }
-      return newRow;
-    });
-    
-    // Write out to data.json
-    await fs.writeFile(outputPath, JSON.stringify(serializedRows, null, 2), 'utf-8');
-    console.log(`Successfully exported ${rows.length} tickers to ${outputPath}`);
+    const inst = await DuckDBInstance.create(tempDbPath, { access_mode: 'READ_ONLY' });
+    const conn = await inst.connect();
+    try {
+      console.log('Querying stock tickers for JSON export...');
+      const result = await conn.runAndReadAll(`
+        SELECT 
+          code::VARCHAR AS code,
+          name::VARCHAR AS name,
+          market::VARCHAR AS market,
+          sector33::VARCHAR AS sector33,
+          market_cap::BIGINT AS market_cap,
+          ipo_date::VARCHAR AS ipo_date,
+          per::DOUBLE AS per,
+          pbr::DOUBLE AS pbr,
+          dividend_yield::DOUBLE AS dividend_yield,
+          dividend_rate::DOUBLE AS dividend_rate,
+          current_price::DOUBLE AS current_price,
+          eps::DOUBLE AS eps,
+          bps::DOUBLE AS bps,
+          change_percent::DOUBLE AS change_percent,
+          prev_close::DOUBLE AS prev_close,
+          open_price::DOUBLE AS open_price,
+          high_price::DOUBLE AS high_price,
+          low_price::DOUBLE AS low_price,
+          volume_day::BIGINT AS volume_day,
+          ma50_diff::DOUBLE AS ma50_diff,
+          ma200_diff::DOUBLE AS ma200_diff,
+          low52_diff::DOUBLE AS low52_diff,
+          high52_diff::DOUBLE AS high52_diff,
+          business_description::VARCHAR AS business_description,
+          business_risks::VARCHAR AS business_risks,
+          business_policy::VARCHAR AS business_policy
+        FROM tickers
+        ORDER BY code ASC
+      `);
+      const rows = result.getRowObjects() as any[];
+      
+      // Convert BigInt to Number for JSON serialization
+      const serializedRows = rows.map(r => {
+        const newRow: any = {};
+        for (const key of Object.keys(r)) {
+          const val = r[key];
+          newRow[key] = typeof val === 'bigint' ? Number(val) : val;
+        }
+        return newRow;
+      });
+      
+      // Write out to data.json
+      await fs.writeFile(outputPath, JSON.stringify(serializedRows, null, 2), 'utf-8');
+      console.log(`Successfully exported ${rows.length} tickers to ${outputPath}`);
+    } finally {
+      conn.disconnectSync();
+      inst.closeSync();
+    }
   } finally {
-    conn.disconnectSync();
-    inst.closeSync();
+    // Clean up temporary database files
+    try {
+      if (existsSync(tempDbPath)) {
+        await fs.unlink(tempDbPath);
+      }
+      if (hasWal && existsSync(tempWalPath)) {
+        await fs.unlink(tempWalPath);
+      }
+    } catch (e) {
+      console.warn('Failed to clean up temporary database files:', e);
+    }
   }
 }
 
