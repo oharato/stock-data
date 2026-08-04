@@ -150,25 +150,19 @@ async function main() {
 
           const writePromises: Promise<void>[] = [];
 
-          // Generate and queue file writes asynchronously
-          if (dailyData.length > 0) {
-            writePromises.push(
-              generateChartWebp(dailyData, { title: name, ticker: code, type: 'daily' })
-                .then(buf => fs.writeFile(join(dirs.daily, `${code}.webp`), buf))
-            );
-          }
-          if (weeklyData.length > 0) {
-            writePromises.push(
-              generateChartWebp(weeklyData, { title: name, ticker: code, type: 'weekly' })
-                .then(buf => fs.writeFile(join(dirs.weekly, `${code}.webp`), buf))
-            );
-          }
-          if (monthlyData.length > 0) {
-            writePromises.push(
-              generateChartWebp(monthlyData, { title: name, ticker: code, type: 'monthly' })
-                .then(buf => fs.writeFile(join(dirs.monthly, `${code}.webp`), buf))
-            );
-          }
+          // Generate and queue file writes asynchronously for all 3 periods to guarantee no 404 errors
+          writePromises.push(
+            generateChartWebp(dailyData, { title: name, ticker: code, type: 'daily' })
+              .then(buf => fs.writeFile(join(dirs.daily, `${code}.webp`), buf))
+          );
+          writePromises.push(
+            generateChartWebp(weeklyData, { title: name, ticker: code, type: 'weekly' })
+              .then(buf => fs.writeFile(join(dirs.weekly, `${code}.webp`), buf))
+          );
+          writePromises.push(
+            generateChartWebp(monthlyData, { title: name, ticker: code, type: 'monthly' })
+              .then(buf => fs.writeFile(join(dirs.monthly, `${code}.webp`), buf))
+          );
 
           await Promise.all(writePromises);
           completed++;

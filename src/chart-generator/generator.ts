@@ -27,7 +27,15 @@ export async function generateChartWebp(
   const volumeTop = top + mainHeight + 20;
 
   if (data.length === 0) {
-    throw new Error('No data available to generate chart');
+    const displayType = options.type === 'daily' ? '日足' : options.type === 'weekly' ? '週足' : '月足';
+    let svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${width} ${height}" width="${width}" height="${height}" style="background-color: #0b0f19; font-family: 'Noto Sans JP', sans-serif;">`;
+    svg += `<rect width="${width}" height="${height}" fill="#0f172a" />`;
+    svg += `<rect x="${left}" y="${top}" width="${chartWidth}" height="${mainHeight + volumeHeight + 20}" fill="none" stroke="#1e293b" stroke-width="1" stroke-dasharray="4,4" />`;
+    svg += `<text x="${left}" y="${top - 33}" fill="#ffffff" font-size="24" font-weight="bold">${options.title} (${options.ticker})</text>`;
+    svg += `<text x="${left}" y="${top - 12}" fill="#38bdf8" font-size="15" font-weight="600">${displayType} チャート</text>`;
+    svg += `<text x="${width / 2}" y="${top + mainHeight / 2}" fill="#64748b" font-size="18" font-weight="500" text-anchor="middle">📊 株価データが存在しません (NO DATA)</text>`;
+    svg += `</svg>`;
+    return sharp(Buffer.from(svg)).webp({ quality: 85 }).toBuffer();
   }
 
   // Calculate scales
