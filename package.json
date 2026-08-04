@@ -9,7 +9,7 @@
     "db:update-metrics": "tsx src/data-fetcher/update-fundamental-metrics.ts",
     "db:update-profiles": "tsx src/data-fetcher/update-qualitative-profiles.ts",
     "charts:generate": "tsx src/chart-generator/batch.ts",
-    "all": "npm run download:tickers && npm run download:history && npm run db:build && npm run db:update-metrics && npm run db:update-profiles && npm run charts:generate",
+    "all": "npm run download:tickers && npm run download:history && npm run db:build && npm run db:update-metrics && npm run db:update-profiles && npm run charts:generate && npm run build:static",
     "build:static": "tsx src/static-builder/build.ts",
     "all:static": "npm run all && npm run build:static",
     "preview": "npx -y http-server dist",
