@@ -48,7 +48,7 @@ export async function fetchDailyPrices(
     const query = `
       WITH ordered_prices AS (
         SELECT * FROM prices
-        WHERE ticker = '${escapedTicker}'
+        WHERE ticker = '${escapedTicker}' AND close > 0
         ORDER BY date ASC
       )
       SELECT 
@@ -58,9 +58,12 @@ export async function fetchDailyPrices(
         low,
         close,
         volume,
-        AVG(close) OVER (ORDER BY date ROWS BETWEEN 4 PRECEDING AND CURRENT ROW) as ma5,
-        AVG(close) OVER (ORDER BY date ROWS BETWEEN 24 PRECEDING AND CURRENT ROW) as ma25,
-        AVG(close) OVER (ORDER BY date ROWS BETWEEN 74 PRECEDING AND CURRENT ROW) as ma75
+        CASE WHEN COUNT(*) OVER (ORDER BY date ROWS BETWEEN 4 PRECEDING AND CURRENT ROW) >= 5 
+             THEN AVG(close) OVER (ORDER BY date ROWS BETWEEN 4 PRECEDING AND CURRENT ROW) ELSE NULL END as ma5,
+        CASE WHEN COUNT(*) OVER (ORDER BY date ROWS BETWEEN 24 PRECEDING AND CURRENT ROW) >= 25 
+             THEN AVG(close) OVER (ORDER BY date ROWS BETWEEN 24 PRECEDING AND CURRENT ROW) ELSE NULL END as ma25,
+        CASE WHEN COUNT(*) OVER (ORDER BY date ROWS BETWEEN 74 PRECEDING AND CURRENT ROW) >= 75 
+             THEN AVG(close) OVER (ORDER BY date ROWS BETWEEN 74 PRECEDING AND CURRENT ROW) ELSE NULL END as ma75
       FROM ordered_prices
       ORDER BY date DESC
       LIMIT ${limit}
@@ -113,8 +116,10 @@ export async function fetchWeeklyPrices(
         low,
         close,
         volume,
-        AVG(close) OVER (ORDER BY w_date ROWS BETWEEN 12 PRECEDING AND CURRENT ROW) as ma13,
-        AVG(close) OVER (ORDER BY w_date ROWS BETWEEN 25 PRECEDING AND CURRENT ROW) as ma26
+        CASE WHEN COUNT(*) OVER (ORDER BY w_date ROWS BETWEEN 12 PRECEDING AND CURRENT ROW) >= 13 
+             THEN AVG(close) OVER (ORDER BY w_date ROWS BETWEEN 12 PRECEDING AND CURRENT ROW) ELSE NULL END as ma13,
+        CASE WHEN COUNT(*) OVER (ORDER BY w_date ROWS BETWEEN 25 PRECEDING AND CURRENT ROW) >= 26 
+             THEN AVG(close) OVER (ORDER BY w_date ROWS BETWEEN 25 PRECEDING AND CURRENT ROW) ELSE NULL END as ma26
       FROM weekly_prices
       ORDER BY date DESC
       LIMIT ${limit}
@@ -167,8 +172,10 @@ export async function fetchMonthlyPrices(
         low,
         close,
         volume,
-        AVG(close) OVER (ORDER BY m_date ROWS BETWEEN 11 PRECEDING AND CURRENT ROW) as ma12,
-        AVG(close) OVER (ORDER BY m_date ROWS BETWEEN 23 PRECEDING AND CURRENT ROW) as ma24
+        CASE WHEN COUNT(*) OVER (ORDER BY m_date ROWS BETWEEN 11 PRECEDING AND CURRENT ROW) >= 12 
+             THEN AVG(close) OVER (ORDER BY m_date ROWS BETWEEN 11 PRECEDING AND CURRENT ROW) ELSE NULL END as ma12,
+        CASE WHEN COUNT(*) OVER (ORDER BY m_date ROWS BETWEEN 23 PRECEDING AND CURRENT ROW) >= 24 
+             THEN AVG(close) OVER (ORDER BY m_date ROWS BETWEEN 23 PRECEDING AND CURRENT ROW) ELSE NULL END as ma24
       FROM monthly_prices
       ORDER BY date DESC
       LIMIT ${limit}

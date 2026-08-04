@@ -110,17 +110,22 @@ export async function generateChartWebp(
     }
   }
 
-  // Draw Grid Lines (Vertical for Dates - select 5 points)
+  // Draw Grid Lines (Vertical for Dates - select points with minimum 65px distance to prevent overlapping)
+  const minLabelDistance = 65;
+  let lastLabelX = -Infinity;
   const step = Math.max(1, Math.floor(data.length / 5));
   for (let i = 0; i < data.length; i += step) {
     const x = getX(i);
     if (x >= left && x <= width - right) {
-      svg += `<line x1="${x}" y1="${top}" x2="${x}" y2="${top + mainHeight}" stroke="#1e293b" stroke-dasharray="4,4" />`;
-      svg += `<line x1="${x}" y1="${volumeTop}" x2="${x}" y2="${volumeTop + volumeHeight}" stroke="#1e293b" stroke-dasharray="4,4" />`;
-      
-      // X label (date)
-      const dateStr = data[i].date;
-      svg += `<text x="${x}" y="${volumeTop + volumeHeight + 18}" fill="#94a3b8" font-size="13" font-weight="500" text-anchor="middle">${dateStr}</text>`;
+      if (x - lastLabelX >= minLabelDistance || i === data.length - 1) {
+        svg += `<line x1="${x}" y1="${top}" x2="${x}" y2="${top + mainHeight}" stroke="#1e293b" stroke-dasharray="4,4" />`;
+        svg += `<line x1="${x}" y1="${volumeTop}" x2="${x}" y2="${volumeTop + volumeHeight}" stroke="#1e293b" stroke-dasharray="4,4" />`;
+        
+        // X label (date)
+        const dateStr = data[i].date;
+        svg += `<text x="${x}" y="${volumeTop + volumeHeight + 18}" fill="#94a3b8" font-size="13" font-weight="500" text-anchor="middle">${dateStr}</text>`;
+        lastLabelX = x;
+      }
     }
   }
 

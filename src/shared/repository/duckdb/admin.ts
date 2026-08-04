@@ -36,7 +36,7 @@ export async function buildDuckDb(
         adj_close::DOUBLE AS adj_close,
         volume::BIGINT AS volume
       FROM read_json_auto('${absGlob}')
-      WHERE date IS NOT NULL AND ticker IS NOT NULL
+      WHERE date IS NOT NULL AND ticker IS NOT NULL AND close > 0
       ORDER BY date, ticker
     `);
     const priceResult = await conn.runAndReadAll('SELECT COUNT(*) AS cnt FROM prices');
