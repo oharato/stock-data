@@ -63,8 +63,13 @@ export async function generateChartWebp(
   minPrice -= priceRange * 0.05;
   if (minPrice < 0) minPrice = 0;
 
-  // Coordinate helper functions
-  const getX = (index: number) => left + (index + 0.5) * (chartWidth / data.length);
+  // Determine standard capacity to prevent sparse stretching for small datasets
+  const defaultCapacity = options.type === 'daily' ? 100 : options.type === 'weekly' ? 80 : 60;
+  const capacity = Math.max(data.length, defaultCapacity);
+  const slotWidth = chartWidth / capacity;
+
+  // Coordinate helper functions (Right-align bars so small datasets render with normal density)
+  const getX = (index: number) => (width - right) - (data.length - 1 - index + 0.5) * slotWidth;
   const getY = (price: number) => top + mainHeight - ((price - minPrice) / (maxPrice - minPrice)) * mainHeight;
   const getVolY = (vol: number) => volumeTop + volumeHeight - (vol / (maxVolume || 1)) * volumeHeight;
 
@@ -109,12 +114,14 @@ export async function generateChartWebp(
   const step = Math.max(1, Math.floor(data.length / 5));
   for (let i = 0; i < data.length; i += step) {
     const x = getX(i);
-    svg += `<line x1="${x}" y1="${top}" x2="${x}" y2="${top + mainHeight}" stroke="#1e293b" stroke-dasharray="4,4" />`;
-    svg += `<line x1="${x}" y1="${volumeTop}" x2="${x}" y2="${volumeTop + volumeHeight}" stroke="#1e293b" stroke-dasharray="4,4" />`;
-    
-    // X label (date)
-    const dateStr = data[i].date;
-    svg += `<text x="${x}" y="${volumeTop + volumeHeight + 18}" fill="#94a3b8" font-size="13" font-weight="500" text-anchor="middle">${dateStr}</text>`;
+    if (x >= left && x <= width - right) {
+      svg += `<line x1="${x}" y1="${top}" x2="${x}" y2="${top + mainHeight}" stroke="#1e293b" stroke-dasharray="4,4" />`;
+      svg += `<line x1="${x}" y1="${volumeTop}" x2="${x}" y2="${volumeTop + volumeHeight}" stroke="#1e293b" stroke-dasharray="4,4" />`;
+      
+      // X label (date)
+      const dateStr = data[i].date;
+      svg += `<text x="${x}" y="${volumeTop + volumeHeight + 18}" fill="#94a3b8" font-size="13" font-weight="500" text-anchor="middle">${dateStr}</text>`;
+    }
   }
 
   // Draw Moving Averages (MA)
@@ -141,9 +148,8 @@ export async function generateChartWebp(
     drawMA(data.map(d => d.ma2), '#3b82f6');  // 24/26
   }
 
-  // Draw Candlesticks & Volumes (Cap maximum bar width to 16px to prevent oversized candles on sparse datasets)
-  const rawBarWidth = (chartWidth / data.length) * 0.7;
-  const barWidth = Math.max(1.5, Math.min(16, rawBarWidth));
+  // Draw Candlesticks & Volumes
+  const barWidth = Math.max(1.5, Math.min(12, slotWidth * 0.7));
 
   for (let i = 0; i < data.length; i++) {
     const row = data[i];
