@@ -141,8 +141,9 @@ export async function generateChartWebp(
     drawMA(data.map(d => d.ma2), '#3b82f6');  // 24/26
   }
 
-  // Draw Candlesticks & Volumes
-  const barWidth = Math.max(1.5, (chartWidth / data.length) * 0.7);
+  // Draw Candlesticks & Volumes (Cap maximum bar width to 16px to prevent oversized candles on sparse datasets)
+  const rawBarWidth = (chartWidth / data.length) * 0.7;
+  const barWidth = Math.max(1.5, Math.min(16, rawBarWidth));
 
   for (let i = 0; i < data.length; i++) {
     const row = data[i];
