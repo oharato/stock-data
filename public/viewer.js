@@ -4,6 +4,12 @@ document.addEventListener('alpine:init', () => {
     allTickers: [],         // Raw stock quotes list
     sectors: [],            // List of unique 33 sectors
     isLoading: true,        // Load overlay
+    buildTimestamp: Date.now(), // Cache-busting timestamp
+    
+    getChartUrl(type, code) {
+      if (!code) return '';
+      return `./charts/${type}/${code}.webp?v=${this.buildTimestamp}`;
+    },
     
     // Filters and sorting state
     searchQuery: config.initialSearch || '',
@@ -58,7 +64,7 @@ document.addEventListener('alpine:init', () => {
     
     async init() {
       try {
-        const res = await fetch('./public/data.json');
+        const res = await fetch(`./public/data.json?v=${this.buildTimestamp}`);
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         this.allTickers = await res.json();
         

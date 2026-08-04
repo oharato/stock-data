@@ -351,16 +351,16 @@
 
               <!-- Chart Grid -->
               <div class="chart-grid">
-                <div class="chart-container" @click="openLightbox('./charts/monthly/' + t.code + '.webp', t.code + ' 月足')">
-                  <img :src="'./charts/monthly/' + t.code + '.webp'" alt="月足" loading="lazy" />
+                <div class="chart-container" @click="openLightbox(getChartUrl('monthly', t.code), t.code + ' 月足')">
+                  <img :src="getChartUrl('monthly', t.code)" alt="月足" loading="lazy" />
                   <span class="chart-period-badge monthly">月足</span>
                 </div>
-                <div class="chart-container" @click="openLightbox('./charts/weekly/' + t.code + '.webp', t.code + ' 週足')">
-                  <img :src="'./charts/weekly/' + t.code + '.webp'" alt="週足" loading="lazy" />
+                <div class="chart-container" @click="openLightbox(getChartUrl('weekly', t.code), t.code + ' 週足')">
+                  <img :src="getChartUrl('weekly', t.code)" alt="週足" loading="lazy" />
                   <span class="chart-period-badge weekly">週足</span>
                 </div>
-                <div class="chart-container" @click="openLightbox('./charts/daily/' + t.code + '.webp', t.code + ' 日足')">
-                  <img :src="'./charts/daily/' + t.code + '.webp'" alt="日足" loading="lazy" />
+                <div class="chart-container" @click="openLightbox(getChartUrl('daily', t.code), t.code + ' 日足')">
+                  <img :src="getChartUrl('daily', t.code)" alt="日足" loading="lazy" />
                   <span class="chart-period-badge daily">日足</span>
                 </div>
               </div>
